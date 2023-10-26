@@ -4,7 +4,7 @@ PC Interface to Moode Audio in python using PySide6 and an mpc executable.
 This is a program to run on your PC and communicate with Moode Audio running on a Rasperry PI.
 It requires PySide6 and an mpc executable (I installed mine via Cygwin).
 If you download a Backup from Moode, you can place the "station_data.json" file into this
-directory.  It will allow you to load display a list of stations and play the url.  The
+directory.  It will allow you to display a list of stations and play the url.  The
 five radio buttons on the radio image will allow you to run your favorites.  For now, 
 the station names/urls are coded in main.py.  I will probably move this to an ini file.
 
