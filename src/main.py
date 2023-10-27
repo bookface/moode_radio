@@ -391,7 +391,7 @@ class MyBorderLessWindow(BorderLessWindow):
             self.radioButton(2)
         elif self.button3Rect.contains(point):
             self.radioButton(3)
-        elif self.button3Rect.contains(point):
+        elif self.button4Rect.contains(point):
             self.radioButton(4)
 
         elif self.tuningKnobRect.contains(point):
