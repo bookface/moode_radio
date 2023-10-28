@@ -2,7 +2,7 @@
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import (Qt, QPoint, QPointF, QSize, QEvent,
-                            QRect,QTimer, Signal)
+                            QRect,QTimer, Signal, QSettings)
 from PySide6.QtWidgets import (QApplication, QMainWindow, QFrame,
                                QMessageBox, QWidget, QLabel, QSizePolicy,
                                QVBoxLayout, QToolTip, QDial,
@@ -21,13 +21,15 @@ from stationView  import StationView
 import os
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# commands require the ip number, browser requires the "local" name. Must
-# be a Windows thing
-# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-url = '192.168.10.67'
 url_for_moodeview = 'http://moode.local'
 image = "images/radio1.png"
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# commands require the ip number, browser requires the "local" name. Must
+# be a Windows thing
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# default settings - use moode_radio.ini to set values
+url = '192.168.10.67'
 # the name of each Radio Button
 buttons = ['Majestic Jukebox', 'Schwarzenstein', 'FluxFM 80s', 'Paradise Mellow', 'KRFC']
 # the url to load of each Radio Button
@@ -78,7 +80,7 @@ class BorderLessWindow(QMainWindow):
         self.alt = False
 
         self.loadImage(image)
-
+        
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # ToolTip is returned when hovering, QHoverEvent doesn't register
     def eventFilter(self, object, event):
@@ -265,7 +267,29 @@ class MyBorderLessWindow(BorderLessWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.currentPlaying)
         self.timer.start(10 * 1000) # seconds
+
+        self.loadSettings()
         
+    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    def loadSettings(self):
+        fname = 'moode_radio.ini'
+        if os.path.isfile(fname):
+            settings = QSettings(fname,QSettings.IniFormat)
+            url = settings.value('url')
+            print(url)
+            for i in range(5):
+                buttons[i] = settings.value(f"button{i}")
+                stations[i] = settings.value(f"station{i}")
+            use_browser = settings.value('python_browser')
+            python_browser = False
+            if use_browser == 1:
+                python_browser = True
+            browser_executable = settings.value('browser_executable')
+            volume = settings.value('volume')
+            self.vol(volume)
+            
+        
+    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # run an mpc command
     def cmd(self,which):
         # print("Command:",which)
@@ -375,6 +399,8 @@ class MyBorderLessWindow(BorderLessWindow):
             if self.status == 0: s = 'Play'
             else: s = 'Pause'
             self.toolTip.showText(event.globalPos(),s,msecShowTime = 2000)
+        elif self.tunerRect.contains(event.pos()):
+            self.toolTip.showText(event.globalPos(),'Select Station',msecShowTime = 2000)
                 
     # left mouse pressed
     def leftMouse(self,e):
