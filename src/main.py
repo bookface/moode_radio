@@ -222,16 +222,29 @@ class MyBorderLessWindow(BorderLessWindow):
         # the station list is not showing
         self.stationListShowing = False
         
-        # no way to tell if Moode is playing or not, so any
+        # There's no way to tell if Moode is playing or not, so any
         # command line arg says it's playing, otherwise
         # start out paused
-        if len(sys.argv) > 1:
-            self.status = 1     # 1 = playing
+        #
+        # Oct 28, 2023 moved to start-up message box
+        # 
+        if False:
+            if len(sys.argv) > 1:
+                self.status = 1     # 1 = playing
+            else:
+                self.status  = 0    # 0 = paused
+                self.pause()
         else:
-            self.status  = 0    # 0 = paused
-            self.pause()
+            reply = QMessageBox.question(self, "Startup", "Is Moode Currently Playing?",
+                                         QMessageBox.Yes|QMessageBox.No)
 
-        self.vol(45)
+            if reply == 16384:
+                self.status = 1
+            else:
+                self.status = 0
+
+        # just keep the current volume
+        # self.vol(45)
             
         # no worko
         #self.rv = RectangleWidget(self,self.volumeRect)
@@ -269,6 +282,8 @@ class MyBorderLessWindow(BorderLessWindow):
         self.timer.start(10 * 1000) # seconds
 
         self.loadSettings()
+
+            
         
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def loadSettings(self):
@@ -276,7 +291,6 @@ class MyBorderLessWindow(BorderLessWindow):
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
             url = settings.value('url')
-            print(url)
             for i in range(5):
                 buttons[i] = settings.value(f"button{i}")
                 stations[i] = settings.value(f"station{i}")
