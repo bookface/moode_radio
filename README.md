@@ -14,3 +14,6 @@ the station names/urls are coded in main.py.  I will probably move this to an in
 4. Press the tuning display to select a station.
 5. Press the "Phillips" badge to bring up a web browser.  There is a python based brower here
    but you can run your own.  Again, see the top of the main.py file.
+6. The default size of the application is the size of the radio image. It
+   can be scaled via the scale parameter to BorderLessWindow
+   

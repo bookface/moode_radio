@@ -1,4 +1,5 @@
 #-*- coding: utf-8 -*-
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 from PySide6 import QtCore, QtGui, QtWidgets
 from PySide6.QtCore import (Qt, QPoint, QPointF, QSize, QEvent,
@@ -9,8 +10,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QFrame,
                                QPushButton, QMenu, QListView,QComboBox)
 
 from PySide6.QtGui import (QPixmap,QPalette,QImage,QPainter,
-                           QHoverEvent, QBrush,QPen,QFont,
-                           QStandardItem,QStandardItemModel)
+                           QHoverEvent, QBrush,QPen,QFont,QTransform)
 
 import subprocess
 from subprocess import CREATE_NO_WINDOW
@@ -22,13 +22,12 @@ import os
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 url_for_moodeview = 'http://moode.local'
-image = "images/radio1.png"
-
+image =             'images/radio1.png'
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # commands require the ip number, browser requires the "local" name. Must
 # be a Windows thing
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# default settings - use moode_radio.ini to set values
+# These are default settings - use moode_radio.ini to set values
 url = '192.168.10.67'
 # the name of each Radio Button
 buttons = ['Majestic Jukebox', 'Schwarzenstein', 'FluxFM 80s', 'Paradise Mellow', 'KRFC']
@@ -46,12 +45,13 @@ python_browser = False
 # the alternate browser
 browser_executable = "F:/apps/bin/moodeView.exe"
 
-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # A QMainwindow with an image
+# The default scale is just the size of the image file.  It can be scaled
+# by applying an imageScale parameter
 class BorderLessWindow(QMainWindow):
 
-    def __init__(self):
+    def __init__(self,scale = 1.0):
         super().__init__()
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -79,6 +79,7 @@ class BorderLessWindow(QMainWindow):
         self.ctrl = False
         self.alt = False
 
+        self.scale = scale
         self.loadImage(image)
         
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -106,6 +107,8 @@ class BorderLessWindow(QMainWindow):
         # transparent background
         self.pixmap = QPixmap.fromImage(image)
         sz = QSize(w, h) # self.width(),self.height())
+        if self.scale != 1.0:
+            sz = QSize(w * self.scale, h*self.scale)
         self.resize(sz) # w/2,h/2)
 
         # aspect = Qt.IgnoreAspectRatio
@@ -197,9 +200,13 @@ class ClickableLabel(QLabel):
         self.mousePress.emit()
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# You can specify a scale to apply to the background images. The
+# rectanges will get re-sized by this scale
 class MyBorderLessWindow(BorderLessWindow):
     def __init__(self):
-        super().__init__()
+
+        self.loadSettings()
+        super().__init__(self.imageScale)
         self.toolTip = QToolTip(self)
 
         # radio button rectangles
@@ -218,6 +225,22 @@ class MyBorderLessWindow(BorderLessWindow):
         self.symbolRect  = QRect(457,118,500-457,180-118)
         self.songRect    = QRect(114,25,846-114,73-25)
         self.tunerRect   = QRect(270,368,692-270,482-368)
+
+        # scale the rectangles if modifying the background
+        # image scale
+        if self.imageScale != 1.0:
+            transform = QTransform()
+            transform = transform.scale(self.imageScale,self.imageScale)
+            self.button0Rect = transform.mapRect(self.button0Rect)
+            self.button1Rect = transform.mapRect(self.button1Rect)
+            self.button2Rect = transform.mapRect(self.button2Rect)
+            self.button3Rect = transform.mapRect(self.button3Rect)
+            self.button4Rect = transform.mapRect(self.button4Rect)
+            self.volumeRect     = transform.mapRect(self.volumeRect)
+            self.tuningKnobRect = transform.mapRect(self.tuningKnobRect)
+            self.symbolRect     = transform.mapRect(self.symbolRect)
+            self.songRect       = transform.mapRect(self.songRect)
+            self.tunerRect      = transform.mapRect(self.tunerRect)
 
         # the station list is not showing
         self.stationListShowing = False
@@ -281,8 +304,6 @@ class MyBorderLessWindow(BorderLessWindow):
         self.timer.timeout.connect(self.currentPlaying)
         self.timer.start(10 * 1000) # seconds
 
-        self.loadSettings()
-
             
         
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -299,7 +320,7 @@ class MyBorderLessWindow(BorderLessWindow):
             if use_browser == 1:
                 python_browser = True
             browser_executable = settings.value('browser_executable')
-
+            self.imageScale = float(settings.value('scale',1.0))
             # nah, keep default volume for now
             # volume = settings.value('volume')
             # self.vol(volume)
