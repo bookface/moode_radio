@@ -299,8 +299,10 @@ class MyBorderLessWindow(BorderLessWindow):
             if use_browser == 1:
                 python_browser = True
             browser_executable = settings.value('browser_executable')
-            volume = settings.value('volume')
-            self.vol(volume)
+
+            # nah, keep default volume for now
+            # volume = settings.value('volume')
+            # self.vol(volume)
             
         
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
