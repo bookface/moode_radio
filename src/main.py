@@ -276,8 +276,9 @@ class MyBorderLessWindow(BorderLessWindow):
         self.volumeDial = InvisaDial(self)
         self.volumeDial.setGeometry(self.volumeRect)
         self.volumeDial.move(self.volumeRect.x(),self.volumeRect.y())
+        self.volumeDial.setPageStep(1)
         self.volumeDial.valueChanged.connect(self.volDial)
-
+        
         # TODO: volume plus button - not sure where to put this
         # It doesn't look right
         pixmap = QPixmap('images/plus.png')
