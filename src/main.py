@@ -2,15 +2,18 @@
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 from PySide6 import QtCore, QtGui, QtWidgets
+
 from PySide6.QtCore import (Qt, QPoint, QPointF, QSize, QEvent,
                             QRect,QTimer, Signal, QSettings)
+
 from PySide6.QtWidgets import (QApplication, QMainWindow, QFrame,
                                QMessageBox, QWidget, QLabel, QSizePolicy,
                                QVBoxLayout, QToolTip, QDial,
                                QPushButton, QMenu, QListView,QComboBox)
 
 from PySide6.QtGui import (QPixmap,QPalette,QImage,QPainter,
-                           QHoverEvent, QBrush,QPen,QFont,QTransform)
+                           QHoverEvent, QBrush,QPen,QFont,
+                           QTransform,QCursor,QAction)
 
 import subprocess
 from subprocess import CREATE_NO_WINDOW
@@ -24,14 +27,16 @@ import os
 url_for_moodeview = 'http://moode.local'
 image =             'images/radio1.png'
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# commands require the ip number, browser requires the "local" name. Must
-# be a Windows thing
+# Commands require the ip number, the browser requires the "local" name.
+# Must be a Windows thing.
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # These are default settings - use moode_radio.ini to set values
 url = '192.168.10.67'
-# the name of each Radio Button
-buttons = ['Majestic Jukebox', 'Schwarzenstein', 'FluxFM 80s', 'Paradise Mellow', 'KRFC']
-# the url to load of each Radio Button
+# the name of each Radio Button - needs to match the image file if
+# logos are enabled
+buttons = ["Majestic Jukebox","FluxFM - Jazzradio Schwarzenstein",
+          "FluxFM - 80s","Radio Paradise - Mellow","KRFC"]
+# the url to load for each Radio Button
 stations = ['http://uk3.internet-radio.com:8405/live',
             'https://fluxmusic.api.radiosphere.io/channels/jazz-schwarzenstein/stream.aac?quality=4',
             'https://fluxmusic.api.radiosphere.io/channels/80s/stream.aac?quality=4',
@@ -48,7 +53,7 @@ browser_executable = "F:/apps/bin/moodeView.exe"
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # A QMainwindow with an image
 # The default scale is just the size of the image file.  It can be scaled
-# by applying an imageScale parameter
+# by applying a scale parameter
 class BorderLessWindow(QMainWindow):
 
     def __init__(self,scale = 1.0):
@@ -225,7 +230,8 @@ class MyBorderLessWindow(BorderLessWindow):
         self.symbolRect  = QRect(457,118,500-457,180-118)
         self.songRect    = QRect(114,25,846-114,73-25)
         self.tunerRect   = QRect(270,368,692-270,482-368)
-
+        self.logoRect    = QRect(617,123,200,200)
+        
         # scale the rectangles if modifying the background
         # image scale
         if self.imageScale != 1.0:
@@ -241,6 +247,7 @@ class MyBorderLessWindow(BorderLessWindow):
             self.symbolRect     = transform.mapRect(self.symbolRect)
             self.songRect       = transform.mapRect(self.songRect)
             self.tunerRect      = transform.mapRect(self.tunerRect)
+            self.logoRect       = transform.mapRect(self.logoRect)
 
         # the station list is not showing
         self.stationListShowing = False
@@ -279,16 +286,19 @@ class MyBorderLessWindow(BorderLessWindow):
         self.volumeDial.setPageStep(1)
         self.volumeDial.valueChanged.connect(self.volDial)
         
-        # TODO: volume plus button - not sure where to put this
-        # It doesn't look right
-        pixmap = QPixmap('images/plus.png')
-        self.plusButton = ClickableLabel(self)
-        self.plusButton.setPixmap(pixmap)
-        self.plusButton.move(self.volumeRect.x() + self.volumeRect.width(),self.volumeRect.y())
-        self.plusButton.resize(50,50)
-        self.plusButton.setScaledContents(True)
-        self.plusButton.mousePress.connect(self.volumeUp)
-        self.plusButton.hide()
+        # Volume plus button - not sure where to put this,
+        # it didn't fit in with the radio look.
+        # Just use the scroll wheel on the volume knob to
+        # increment/decrement by 1
+        if False:
+            pixmap = QPixmap('images/plus.png')
+            self.plusButton = ClickableLabel(self)
+            self.plusButton.setPixmap(pixmap)
+            self.plusButton.move(self.volumeRect.x() + self.volumeRect.width(),self.volumeRect.y())
+            self.plusButton.resize(50,50)
+            self.plusButton.setScaledContents(True)
+            self.plusButton.mousePress.connect(self.volumeUp)
+            self.plusButton.hide()
             
         self.label = ClickableLabel(self)
         self.label.setGeometry(self.songRect)
@@ -297,6 +307,13 @@ class MyBorderLessWindow(BorderLessWindow):
         makeCornersRound(self.label)
         self.label.setStyleSheet('color:white;background-color: rgba(0,0,0,0%)');
 
+        # logos - enabled if ./radio-logos directory exists
+        self.logo = None
+        if os.path.isdir('radio-logos'):
+            self.logo = QLabel(self)
+            self.logo.setGeometry(self.logoRect)
+            self.logo.setScaledContents(True)
+            
         # display currently playing
         self.currentPlaying()
 
@@ -305,7 +322,14 @@ class MyBorderLessWindow(BorderLessWindow):
         self.timer.timeout.connect(self.currentPlaying)
         self.timer.start(10 * 1000) # seconds
 
-            
+    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    def setLogoImage(self,fname):
+        name  = f"radio-logos/{fname}"
+        image = QImage(name)
+        pixmap = QPixmap.fromImage(image)
+        sz = QSize(image.width(),image.height())
+        pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+        self.logo.setPixmap(pixmap)
         
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def loadSettings(self):
@@ -334,13 +358,20 @@ class MyBorderLessWindow(BorderLessWindow):
         proc = f"mpc -h {url} {which}"
         subprocess.run(proc,creationflags=CREATE_NO_WINDOW)
         
-    # not currently used, right mouse moves the radio
+    # add an action to a popup menu
+    def addAction(self,name,popup,callback):
+        a = QAction(name, self)
+        popup.addAction(a)
+        a.triggered.connect(callback)
+
+    # popup menu
     def popupMenu(self,point):
         popup = QMenu(self)
         popup.setStyleSheet('background-color: white; selection-color:red; font-size: 20px ')
+        self.addAction('Browser',popup,self.launchBrowser)
         self.addAction('Exit',popup,self.close)
         popup.exec(point)
-
+        
     # display the currently playing song
     def currentPlaying(self):
         proc = f"mpc -h {url} current"
@@ -364,6 +395,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.cmd(f'add {stations[i]}')
         self.cmd("play")
         self.status = 1
+        self.setLogoImage(buttons[i])
         
     def pause(self):
         self.cmd('pause')
@@ -390,10 +422,15 @@ class MyBorderLessWindow(BorderLessWindow):
     def stationSelected(self):
         station_url = self.stationView.url
         if station_url != None:
-            print("station",station_url)
             self.cmd("clear")
             self.cmd(f"add {station_url}")
             self.cmd("play")
+
+        # display the station logo, if enabled
+        name = self.stationView.name
+        if name != None and self.logo != None:
+            name = f"{name}.jpg"
+            self.setLogoImage(name)
 
         self.stationView.close()
         self.stationListShowing = False
@@ -408,6 +445,12 @@ class MyBorderLessWindow(BorderLessWindow):
         
     # start a browser by clicking on the "Phillips" image
     def symbol(self):
+        point = QCursor.pos()
+        point.setY(point.y()- 25)
+        self.popupMenu(point)
+        # self.launchBrowser()
+
+    def launchBrowser(self):
         proc = browser_executable
         if python_browser:
             if os.name == 'nt':
@@ -468,6 +511,7 @@ class MyBorderLessWindow(BorderLessWindow):
         else:
             print("My Left Mouse",point)
 
+#  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 if __name__ == '__main__':
     import sys
     sys.dont_write_bytecode = True

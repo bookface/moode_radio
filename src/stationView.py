@@ -30,11 +30,14 @@ class StationView(QMainWindow):
         self.setWindowTitle("Station List")
         self.setCentralWidget(self.list)
         self.url = None
+        self.name = None
         
     # Item clicked. Set 'self.url' to the selected url, and emit
     # 'selected'
     def clicked(self,item):
         row = self.list.currentRow()
+        item = self.list.item(row)
+        self.name = item.text()
         self.url = self.urls[row]
         self.selected.emit()
         
