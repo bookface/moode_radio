@@ -368,6 +368,7 @@ class MyBorderLessWindow(BorderLessWindow):
     def popupMenu(self,point):
         popup = QMenu(self)
         popup.setStyleSheet('background-color: white; selection-color:red; font-size: 20px ')
+        self.addAction('Minimize',popup,self.showMinimized)
         self.addAction('Browser',popup,self.launchBrowser)
         self.addAction('Exit',popup,self.close)
         popup.exec(point)
@@ -435,6 +436,9 @@ class MyBorderLessWindow(BorderLessWindow):
         self.stationView.close()
         self.stationListShowing = False
         
+    def stationClosed(self):
+        self.stationListShowing = False
+        
     # display the station list
     def tuner(self,point):
         if self.stationListShowing == False:
@@ -442,7 +446,8 @@ class MyBorderLessWindow(BorderLessWindow):
             self.stationView = StationView(self)
             self.stationView.show()
             self.stationView.selected.connect(self.stationSelected)
-        
+            self.stationView.closed.connect(self.stationClosed)
+            
     # start a browser by clicking on the "Phillips" image
     def symbol(self):
         point = QCursor.pos()

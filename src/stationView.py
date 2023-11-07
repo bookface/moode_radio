@@ -12,6 +12,7 @@ import json
 class StationView(QMainWindow):
     # signals must be declared before init
     selected = Signal()
+    closed   = Signal()
     
     def __init__(self,parent=None):
         super().__init__(parent)
@@ -31,6 +32,10 @@ class StationView(QMainWindow):
         self.setCentralWidget(self.list)
         self.url = None
         self.name = None
+        
+    def closeEvent(self,e):
+        self.closed.emit()
+        self.close()
         
     # Item clicked. Set 'self.url' to the selected url, and emit
     # 'selected'
