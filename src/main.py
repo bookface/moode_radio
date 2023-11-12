@@ -15,13 +15,15 @@ from PySide6.QtGui import (QPixmap,QPalette,QImage,QPainter,
                            QHoverEvent, QBrush,QPen,QFont,
                            QTransform,QCursor,QAction)
 
-import subprocess
-from subprocess import CREATE_NO_WINDOW
 
 from roundCorners import makeCornersRound
 from stationView  import StationView
 
 import os
+# Looks like subprocess is not very portable
+import subprocess
+if os.name == 'nt':
+    from subprocess import CREATE_NO_WINDOW
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 url_for_moodeview = 'http://moode.local'
@@ -325,11 +327,12 @@ class MyBorderLessWindow(BorderLessWindow):
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def setLogoImage(self,fname):
         name  = f"radio-logos/{fname}"
-        image = QImage(name)
-        pixmap = QPixmap.fromImage(image)
-        sz = QSize(image.width(),image.height())
-        pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
-        self.logo.setPixmap(pixmap)
+        if os.path.isfile(name):
+            image = QImage(name)
+            pixmap = QPixmap.fromImage(image)
+            sz = QSize(image.width(),image.height())
+            pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+            self.logo.setPixmap(pixmap)
         
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def loadSettings(self):
@@ -356,7 +359,10 @@ class MyBorderLessWindow(BorderLessWindow):
     def cmd(self,which):
         # print("Command:",which)
         proc = f"mpc -h {url} {which}"
-        subprocess.run(proc,creationflags=CREATE_NO_WINDOW)
+        if os.name == 'nt':
+            subprocess.run(proc,creationflags=CREATE_NO_WINDOW)
+        else:
+            subprocess.run(proc,shell=True)
         
     # add an action to a popup menu
     def addAction(self,name,popup,callback):
@@ -376,7 +382,10 @@ class MyBorderLessWindow(BorderLessWindow):
     # display the currently playing song
     def currentPlaying(self):
         proc = f"mpc -h {url} current"
-        result = subprocess.run(proc,creationflags=CREATE_NO_WINDOW,capture_output=True)
+        if os.name == 'nt':
+            result = subprocess.run(proc,creationflags=CREATE_NO_WINDOW,capture_output=True)
+        else:
+            result = subprocess.run(proc,shell=True)
         # print(result.stdout)
         out = str(result.stdout)
         out = out[2:]           # remove b", whatever that is
