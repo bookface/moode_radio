@@ -327,13 +327,15 @@ class MyBorderLessWindow(BorderLessWindow):
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def setLogoImage(self,fname):
         name  = f"radio-logos/{fname}"
+        if not os.path.isfile(name):
+            name  = f"radio-logos/{fname}.jpg"
         if os.path.isfile(name):
             image = QImage(name)
             pixmap = QPixmap.fromImage(image)
             sz = QSize(image.width(),image.height())
             pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
             self.logo.setPixmap(pixmap)
-        
+
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def loadSettings(self):
         fname = 'moode_radio.ini'
