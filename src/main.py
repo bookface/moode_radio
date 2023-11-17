@@ -33,7 +33,7 @@ image =             'images/radio1.png'
 # Must be a Windows thing.
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # These are default settings - use moode_radio.ini to set values
-url = '192.168.10.67'
+url = '192.168.10.68'
 # the name of each Radio Button - needs to match the image file if
 # logos are enabled
 buttons = ["Majestic Jukebox","FluxFM - Jazzradio Schwarzenstein",
@@ -341,6 +341,8 @@ class MyBorderLessWindow(BorderLessWindow):
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
+            global url,buttons,stations,python_browser
+            global browser_executable
             url = settings.value('url')
             for i in range(5):
                 buttons[i] = settings.value(f"button{i}")
