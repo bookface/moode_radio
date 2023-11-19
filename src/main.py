@@ -352,8 +352,7 @@ class MyBorderLessWindow(BorderLessWindow):
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # run an mpc command
     def cmd(self,which):
-        # print("Command:",which)
-        proc = f"mpc -h {url} {which}"
+        proc = f"mpc --quiet -h {url} {which}"
         if os.name == 'nt':
             subprocess.run(proc,creationflags=CREATE_NO_WINDOW)
         else:
