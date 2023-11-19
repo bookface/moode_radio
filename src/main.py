@@ -88,7 +88,7 @@ class BorderLessWindow(QMainWindow):
 
         self.scale = scale
         self.loadImage(image)
-        
+
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # ToolTip is returned when hovering, QHoverEvent doesn't register
     def eventFilter(self, object, event):
@@ -254,30 +254,6 @@ class MyBorderLessWindow(BorderLessWindow):
         # the station list is not showing
         self.stationListShowing = False
         
-        # There's no way to tell if Moode is playing or not, so any
-        # command line arg says it's playing, otherwise
-        # start out paused
-        #
-        # Oct 28, 2023 moved to start-up message box
-        # 
-        if False:
-            if len(sys.argv) > 1:
-                self.status = 1     # 1 = playing
-            else:
-                self.status  = 0    # 0 = paused
-                self.pause()
-        else:
-            reply = QMessageBox.question(self, "Startup", "Is Moode Currently Playing?",
-                                         QMessageBox.Yes|QMessageBox.No)
-
-            if reply == 16384:
-                self.status = 1
-            else:
-                self.status = 0
-
-        # just keep the current volume
-        # self.vol(45)
-            
         # no worko
         #self.rv = RectangleWidget(self,self.volumeRect)
         #self.rv.move(self.volumeRect.x(),self.volumeRect.y())
@@ -324,6 +300,8 @@ class MyBorderLessWindow(BorderLessWindow):
         self.timer.timeout.connect(self.currentPlaying)
         self.timer.start(10 * 1000) # seconds
 
+        self.status()
+
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def setLogoImage(self,fname):
         name  = f"radio-logos/{fname}"
@@ -335,6 +313,23 @@ class MyBorderLessWindow(BorderLessWindow):
             sz = QSize(image.width(),image.height())
             pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
             self.logo.setPixmap(pixmap)
+
+    def checkLogoImage(self,fname):
+        if 'null' in str(self.logo.pixmap()):
+            self.setLogoImage(fname)
+        
+    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # comes out as :b'volume: 21%   repeat: off   random: off   single: off   consume: off'
+    # set the value of the volume dial
+    def status(self):
+        result = self.cmdResult('')
+        if result != '':
+            out = str(result[2])
+            out = out[2:]           # remove b", whatever that is
+            tokens = out.split()
+            out = tokens[1]         # should be volume number
+            out = out[:-1]          # remove the %
+            self.volumeDial.setValue(int(out))
 
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def loadSettings(self):
@@ -353,10 +348,6 @@ class MyBorderLessWindow(BorderLessWindow):
                 python_browser = True
             browser_executable = settings.value('browser_executable')
             self.imageScale = float(settings.value('scale',1.0))
-            # nah, keep default volume for now
-            # volume = settings.value('volume')
-            # self.vol(volume)
-            
         
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # run an mpc command
@@ -367,6 +358,31 @@ class MyBorderLessWindow(BorderLessWindow):
             subprocess.run(proc,creationflags=CREATE_NO_WINDOW)
         else:
             subprocess.run(proc,shell=True)
+        
+    # run an mpc command, and return the result strings
+    def cmdResult(self,which):
+        proc = f"mpc -h {url} {which}"
+        process = subprocess.Popen(proc,shell=True,stdin=None,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        result=process.stdout.readlines()
+        return result
+
+    # return the length of the playlist
+    def playlistLength(self):
+        result = self.cmdResult('playlist')
+        return len(result)
+
+    # add a url to the bottom of the playlist and play it
+    def add(self,url):
+        self.cmd(f'add {url}')
+        result = self.playlistLength()
+        if result > 0:
+            self.cmd(f"play {result}")
+            return True
+        return False
+    
+    # clears the playlist
+    def clearList(self):
+        self.cmd('clear');
         
     # add an action to a popup menu
     def addAction(self,name,popup,callback):
@@ -380,22 +396,20 @@ class MyBorderLessWindow(BorderLessWindow):
         popup.setStyleSheet('background-color: white; selection-color:red; font-size: 20px ')
         self.addAction('Minimize',popup,self.showMinimized)
         self.addAction('Browser',popup,self.launchBrowser)
+        self.addAction('Clear Playlist',popup,self.clearList)
         self.addAction('Exit',popup,self.close)
         popup.exec(point)
         
     # display the currently playing song
     def currentPlaying(self):
-        proc = f"mpc -h {url} current"
-        if os.name == 'nt':
-            result = subprocess.run(proc,creationflags=CREATE_NO_WINDOW,capture_output=True)
-        else:
-            result = subprocess.run(proc,shell=True)
-        # print(result.stdout)
-        out = str(result.stdout)
-        out = out[2:]           # remove b", whatever that is
-        out = out[:-3]          # remove \n
-        self.label.setText(out)
-        
+        result = self.cmdResult('current')
+        if result != '':
+            out = str(result)
+            out = out[2:]           # remove b", whatever that is
+            out = out[:-3]          # remove \n
+            self.label.setText(out)
+            # self.checkLogoImage(out)
+
     # called when volume dial changed
     def volDial(self,value):
         self.vol(value)
@@ -405,12 +419,9 @@ class MyBorderLessWindow(BorderLessWindow):
         
     # one of the 5 radio buttons was pressed
     def radioButton(self,i):
-        self.cmd("clear")
-        self.cmd(f'add {stations[i]}')
-        self.cmd("play")
-        self.status = 1
-        self.setLogoImage(buttons[i])
-        
+        if self.add(stations[i]) == True:
+            self.setLogoImage(buttons[i])
+
     def pause(self):
         self.cmd('pause')
 
@@ -428,23 +439,18 @@ class MyBorderLessWindow(BorderLessWindow):
 
     # the tuning knob toggles play/pause
     def tuningKnob(self):
-        if self.status == 0: self.play()
-        else: self.pause()
-        self.status = 1 - self.status
+        self.cmd('toggle')
             
     # a station was selected form the station list
     def stationSelected(self):
         station_url = self.stationView.url
         if station_url != None:
-            self.cmd("clear")
-            self.cmd(f"add {station_url}")
-            self.cmd("play")
-
-        # display the station logo, if enabled
-        name = self.stationView.name
-        if name != None and self.logo != None:
-            name = f"{name}.jpg"
-            self.setLogoImage(name)
+            if self.add(station_url) == True:
+                # display the station logo, if enabled
+                name = self.stationView.name
+                if name != None and self.logo != None:
+                    name = f"{name}.jpg"
+                    self.setLogoImage(name)
 
         self.stationView.close()
         self.stationListShowing = False
@@ -495,9 +501,7 @@ class MyBorderLessWindow(BorderLessWindow):
             self.toolTip.showText(event.globalPos(),buttons[4],msecShowTime = 2000)
 
         elif self.tuningKnobRect.contains(event.pos()):
-            if self.status == 0: s = 'Play'
-            else: s = 'Pause'
-            self.toolTip.showText(event.globalPos(),s,msecShowTime = 2000)
+            self.toolTip.showText(event.globalPos(),'Play/Pause',msecShowTime = 2000)
         elif self.tunerRect.contains(event.pos()):
             self.toolTip.showText(event.globalPos(),'Select Station',msecShowTime = 2000)
                 
@@ -526,8 +530,9 @@ class MyBorderLessWindow(BorderLessWindow):
             self.symbol()
         elif self.tunerRect.contains(point):
             self.tuner(point)
-        else:
-            print("My Left Mouse",point)
+
+        # else:
+        # print("My Left Mouse",point)
 
 #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 if __name__ == '__main__':
