@@ -319,17 +319,27 @@ class MyBorderLessWindow(BorderLessWindow):
             self.setLogoImage(fname)
         
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # comes out as :b'volume: 21%   repeat: off   random: off   single: off   consume: off'
-    # set the value of the volume dial
+    # cmdResult() sometimes comes out as:
+    #  :b'volume: 21%   repeat: off   random: off   single: off   consume: off'
+    # other times it's an array, so have to figure out via the length
+    # returned what we are getting back
+    #
+    # sets the value of the volume dial only for now
+    #
     def status(self):
         result = self.cmdResult('')
-        if result != '':
-            out = str(result[2])
-            out = out[2:]           # remove b", whatever that is
-            tokens = out.split()
-            out = tokens[1]         # should be volume number
-            out = out[:-1]          # remove the %
-            self.volumeDial.setValue(int(out))
+        if len(result) == 0:
+            return
+        out = ''
+        if len(result) == 1:
+            out = str(result)
+        else:
+            out = result[2]
+        out = out[2:]           # remove b", whatever that is
+        tokens = out.split()
+        out = tokens[1]         # should be volume number
+        out = out[:-1]          # remove the %
+        self.volumeDial.setValue(int(out))
 
     #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def loadSettings(self):
@@ -358,10 +368,17 @@ class MyBorderLessWindow(BorderLessWindow):
         else:
             subprocess.run(proc,shell=True)
         
-    # run an mpc command, and return the result strings
+    #
+    # run an mpc command, and return the result strings.
+    # Sometimes we only get a single string back, sometimes an
+    # array of strings!
+    #
     def cmdResult(self,which):
         proc = f"mpc -h {url} {which}"
-        process = subprocess.Popen(proc,shell=True,stdin=None,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        process = subprocess.Popen(proc,shell=True,
+                                   stdin=None,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
         result=process.stdout.readlines()
         return result
 
@@ -402,7 +419,7 @@ class MyBorderLessWindow(BorderLessWindow):
     # display the currently playing song
     def currentPlaying(self):
         result = self.cmdResult('current')
-        if result != '':
+        if len(result) == 1:
             out = str(result)
             out = out[2:]           # remove b", whatever that is
             out = out[:-3]          # remove \n
