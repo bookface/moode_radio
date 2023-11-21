@@ -330,11 +330,10 @@ class MyBorderLessWindow(BorderLessWindow):
         result = self.cmdResult('')
         if len(result) == 0:
             return
-        out = ''
-        if len(result) == 1:
-            out = str(result)
-        else:
-            out = result[2]
+        out = str(result[len(result)-1])
+        if 'ERROR' in out:
+            self.label.setText(out)
+            return
         out = out[2:]           # remove b", whatever that is
         tokens = out.split()
         out = tokens[1]         # should be volume number
