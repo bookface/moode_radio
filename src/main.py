@@ -13,7 +13,8 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QFrame,
 
 from PySide6.QtGui import (QPixmap,QPalette,QImage,QPainter,
                            QHoverEvent, QBrush,QPen,QFont,
-                           QTransform,QCursor,QAction)
+                           QTransform,QCursor,QAction,
+                           QIcon)
 
 
 from roundCorners import makeCornersRound
@@ -215,6 +216,15 @@ class MyBorderLessWindow(BorderLessWindow):
         self.loadSettings()
         super().__init__(self.imageScale)
         self.toolTip = QToolTip(self)
+
+        # set application icon
+        # yet another Windows kludge
+        if os.name == 'nt':
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('moode_radio.app.1')
+        pixmap = QPixmap('images/radioIcon.png')
+        self.icon = QIcon(pixmap)
+        self.setWindowIcon(self.icon)
 
         # radio button rectangles
         ytop = 500
