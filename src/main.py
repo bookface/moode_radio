@@ -47,9 +47,9 @@ stations = ['http://uk3.internet-radio.com:8405/live',
             'https://ice24.securenetsystems.net/KRFCFM?playSessionID=AA58FC61-C29C-C235-CC97982D7A692354' ]
 
 # whatever browser to load - see symbol()
-# set to True if using an alternate browser, else it will load the
+# set to False if using an alternate browser, else it will load the
 # (slow) python-based browser
-python_browser = False
+python_browser = True
 # the alternate browser
 browser_executable = "F:/apps/bin/moodeView.exe"
 
@@ -361,10 +361,8 @@ class MyBorderLessWindow(BorderLessWindow):
             for i in range(5):
                 buttons[i] = settings.value(f"button{i}")
                 stations[i] = settings.value(f"station{i}")
-            use_browser = settings.value('python_browser')
-            python_browser = False
-            if use_browser == 1:
-                python_browser = True
+            use_python_browser = settings.value('python_browser')
+            python_browser = (int(use_python_browser) == 1)
             browser_executable = settings.value('browser_executable')
             self.imageScale = float(settings.value('scale',1.0))
         
@@ -497,17 +495,26 @@ class MyBorderLessWindow(BorderLessWindow):
         point = QCursor.pos()
         point.setY(point.y()- 25)
         self.popupMenu(point)
-        # self.launchBrowser()
 
     def launchBrowser(self):
+        global url_for_moodeview,python_browser
         proc = browser_executable
-        if python_browser:
+        cwd = os.getcwd()
+
+        # subprocess requires shell=True on linux for some
+        # stupid reason. Otherwise it can't find the python
+        # executable.
+
+        if python_browser:      # use python browser
             if os.name == 'nt':
                 proc = f"pythonw ./browser.py {url_for_moodeview}"
+                subprocess.Popen(proc)
             else:
-                proc = f"./browser.py {url_for_moodeview}"
-        subprocess.Popen(proc)
-        
+                proc = f"python3 browser.py {url_for_moodeview}"
+                subprocess.Popen(proc,shell=True,cwd=cwd)
+        else:                   # use alternative browser
+            subprocess.Popen(browser_executable)
+            
     # display tooltips
     def hover(self,event):
         # event.pos() is QPoint, not QPointF!
