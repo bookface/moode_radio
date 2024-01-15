@@ -1,7 +1,9 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+#
 # donn, Jan 14, 2024 - added timeouts to mpc
-
+# donn, Jan 15, 2024 - left mouse now drags if no button is pressed
+#
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from PySide6.QtCore import (Qt, QPoint, QPointF, QSize, QEvent,
@@ -69,7 +71,7 @@ class BorderLessWindow(QMainWindow):
         super().__init__()
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint)
-        self.pressPos = None        
+        self.pressPos = None    # used to drag with the mouse
         self.useRight = False
         self.resize(800,600)
 
@@ -96,7 +98,7 @@ class BorderLessWindow(QMainWindow):
         self.scale = scale
         self.loadImage(image)
 
-    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # ToolTip is returned when hovering, QHoverEvent doesn't register
     def eventFilter(self, object, event):
         # got to be a better way
@@ -105,7 +107,7 @@ class BorderLessWindow(QMainWindow):
             self.hover(event)
         return False
 
-    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load a single image from a file
     def loadImage(self,fileName):
         image = QImage(fileName)
@@ -130,7 +132,7 @@ class BorderLessWindow(QMainWindow):
         self.pixmap = self.pixmap.scaled(sz,aspect,Qt.SmoothTransformation)
         self.imageLabel.setPixmap(self.pixmap)
 
-    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def hover(self,event):      # overide this
         pass
     def rightMouse(self):       # override this
@@ -138,22 +140,18 @@ class BorderLessWindow(QMainWindow):
     def leftMouse(self,e):      # override this
         pass
     
-    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def mousePressEvent(self,event):
-        # right button to move 
+        self.pressPos = event.position() # save initial drag position
         if event.button() == Qt.RightButton:
-            self.pressPos = event.position()  
             self.rightMouse()
-            return
-        else:
-            self.pressPos = None
-
-        if event.button() == Qt.LeftButton:
-            self.pressPos = None
+        elif event.button() == Qt.LeftButton:
             self.leftMouse(event)
+        else:
+            self.pressPos = None # middle mouse?
 
 
-    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def mouseMoveEvent(self,event):
         if self.pressPos != None:  
             q = QPointF(self.x(),self.y())
@@ -177,7 +175,7 @@ class BorderLessWindow(QMainWindow):
         
         
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# not showing up
+# used for debugging knob positions, but it's not showing up
 class RectangleWidget(QWidget):
     def __init__(self,parent,rect):
         super().__init__(parent)
@@ -204,7 +202,7 @@ class InvisaDial(QDial):
 # QLabels are not normally "clickable," so we need to add the signal
 class ClickableLabel(QLabel):
 
-    # signals must be declared before init
+    # signals must be declared before init in Python
     mousePress = Signal()
     
     def __init__(self,parent = None):
@@ -232,7 +230,8 @@ class MyBorderLessWindow(BorderLessWindow):
         self.icon = QIcon(pixmap)
         self.setWindowIcon(self.icon)
 
-        # radio button rectangles
+        # radio button rectangles - all data hard-wired
+        # unfortunately
         ytop = 500
         yheight = 530-ytop
         xwidth  = 55
@@ -318,7 +317,7 @@ class MyBorderLessWindow(BorderLessWindow):
 
         self.status()
 
-    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def setLogoImage(self,fname):
         name  = f"radio-logos/{fname}"
         if not os.path.isfile(name):
@@ -334,7 +333,7 @@ class MyBorderLessWindow(BorderLessWindow):
         if 'null' in str(self.logo.pixmap()):
             self.setLogoImage(fname)
         
-    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # cmdResult() sometimes comes out as:
     #  :b'volume: 21%   repeat: off   random: off   single: off   consume: off'
     # other times it's an array, so have to figure out via the length
@@ -356,7 +355,7 @@ class MyBorderLessWindow(BorderLessWindow):
         out = out[:-1]          # remove the %
         self.volumeDial.setValue(int(out))
 
-    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def loadSettings(self):
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
@@ -372,7 +371,7 @@ class MyBorderLessWindow(BorderLessWindow):
             browser_executable = settings.value('browser_executable')
             self.imageScale = float(settings.value('scale',1.0))
         
-    #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # run an mpc command
     def cmd(self,which):
         proc = f"mpc --quiet -h {url} {which}"
@@ -388,7 +387,6 @@ class MyBorderLessWindow(BorderLessWindow):
     # run an mpc command, and return the result strings.
     # Sometimes we only get a single string back, sometimes an
     # array of strings!
-    #
     #
     def cmdResult(self,which):
         import signal
@@ -533,6 +531,7 @@ class MyBorderLessWindow(BorderLessWindow):
         else:                   # use alternative browser
             subprocess.Popen(browser_executable)
             
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # display tooltips
     def hover(self,event):
         # event.pos() is QPoint, not QPointF!
@@ -555,6 +554,7 @@ class MyBorderLessWindow(BorderLessWindow):
         elif self.tunerRect.contains(event.pos()):
             self.toolTip.showText(event.globalPos(),'Select Station',msecShowTime = 2000)
                 
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # left mouse pressed
     def leftMouse(self,e):
         # position is QPointf here! Must convert to QPoint to compare to rect
@@ -562,6 +562,11 @@ class MyBorderLessWindow(BorderLessWindow):
         x = pos.x(); y = pos.y()
         point = QPoint(x,y)
             
+        #
+        # if none of these happen, then drag with the mouse
+        #
+        save = self.pressPos
+        self.pressPos = None
         if self.button0Rect.contains(point):
             self.radioButton(0)
         elif self.button1Rect.contains(point):
@@ -580,9 +585,8 @@ class MyBorderLessWindow(BorderLessWindow):
             self.symbol()
         elif self.tunerRect.contains(point):
             self.tuner(point)
-
-        # else:
-        # print("My Left Mouse",point)
+        else:                   # restore pressPos for dragging
+            self.pressPos = save
 
 #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 if __name__ == '__main__':
