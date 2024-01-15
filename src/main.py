@@ -1,5 +1,6 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# donn, Jan 14, 2024 - added timeouts to mpc
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -21,37 +22,42 @@ from roundCorners import makeCornersRound
 from stationView  import StationView
 
 import os
+
 # Looks like subprocess is not very portable
 import subprocess
 if os.name == 'nt':
     from subprocess import CREATE_NO_WINDOW
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-url_for_moodeview = 'http://moode.local'
-image =             'images/radio1.png'
-# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# These are default settings - use moode_radio.ini to set values
 # Commands require the ip number, the browser requires the "local" name.
 # Must be a Windows thing.
-# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# These are default settings - use moode_radio.ini to set values
-url = '192.168.10.68'
+#
+url_for_moodeview = 'http://moode.local'
+url   = '192.168.10.68'
+image = 'images/radio1.png'
+#
 # the name of each Radio Button - needs to match the image file if
 # logos are enabled
+#
 buttons = ["Majestic Jukebox","FluxFM - Jazzradio Schwarzenstein",
           "FluxFM - 80s","Radio Paradise - Mellow","KRFC"]
+#
 # the url to load for each Radio Button
+#
 stations = ['http://uk3.internet-radio.com:8405/live',
             'https://fluxmusic.api.radiosphere.io/channels/jazz-schwarzenstein/stream.aac?quality=4',
             'https://fluxmusic.api.radiosphere.io/channels/80s/stream.aac?quality=4',
             'https://stream.radioparadise.com/mellow-320',
             'https://ice24.securenetsystems.net/KRFCFM?playSessionID=AA58FC61-C29C-C235-CC97982D7A692354' ]
 
+#
 # whatever browser to load - see symbol()
 # set to False if using an alternate browser, else it will load the
 # (slow) python-based browser
 python_browser = True
 # the alternate browser
-browser_executable = "F:/apps/bin/moodeView.exe"
+browser_executable = "C:/apps/bin/moodeView.exe"
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # A QMainwindow with an image
@@ -370,23 +376,35 @@ class MyBorderLessWindow(BorderLessWindow):
     # run an mpc command
     def cmd(self,which):
         proc = f"mpc --quiet -h {url} {which}"
-        if os.name == 'nt':
-            subprocess.run(proc,creationflags=CREATE_NO_WINDOW)
-        else:
-            subprocess.run(proc,shell=True)
+        try:
+            if os.name == 'nt':
+                subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 1)
+            else:
+                subprocess.run(proc,shell=True,timeout = 1)
+        except subprocess.TimeoutExpired:
+            self.label.setText(f"MPC Error, check URL:{url}")
         
     #
     # run an mpc command, and return the result strings.
     # Sometimes we only get a single string back, sometimes an
     # array of strings!
     #
+    #
     def cmdResult(self,which):
+        import signal
+        result = []
         proc = f"mpc -h {url} {which}"
-        process = subprocess.Popen(proc,shell=True,
-                                   stdin=None,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-        result=process.stdout.readlines()
+        try:
+            process = subprocess.Popen(proc,shell=True,
+                                       stdin=None,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            process.wait(timeout=1)
+            result=process.stdout.readlines()
+        except subprocess.TimeoutExpired:
+            self.label.setText(f"Error In Communition, check URL:{url}")
+            os.kill(process.pid, signal.SIGTERM)
+
         return result
 
     # return the length of the playlist
