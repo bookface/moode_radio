@@ -2,7 +2,9 @@
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #
 # donn, Jan 14, 2024 - added timeouts to mpc
-# donn, Jan 15, 2024 - left mouse now drags if no button is pressed
+# donn, Jan 15, 2024
+#   - left mouse now drags if no knob is under the mouse
+#   - added overlays to see positions of knobs for debugging
 #
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -11,7 +13,7 @@ from PySide6.QtCore import (Qt, QPoint, QPointF, QSize, QEvent,
 
 from PySide6.QtWidgets import (QApplication, QMainWindow, QFrame,
                                QMessageBox, QWidget, QLabel, QSizePolicy,
-                               QVBoxLayout, QToolTip, QDial,
+                               QVBoxLayout, QToolTip, QDial, QRubberBand,
                                QPushButton, QMenu, QListView,QComboBox)
 
 from PySide6.QtGui import (QPixmap,QPalette,QImage,QPainter,
@@ -19,7 +21,7 @@ from PySide6.QtGui import (QPixmap,QPalette,QImage,QPainter,
                            QTransform,QCursor,QAction,
                            QIcon)
 
-
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 from roundCorners import makeCornersRound
 from stationView  import StationView
 
@@ -39,8 +41,8 @@ url_for_moodeview = 'http://moode.local'
 url   = '192.168.10.68'
 image = 'images/radio1.png'
 #
-# the name of each Radio Button - needs to match the image file if
-# logos are enabled
+# the name of each Radio Button - they need to match the name of the
+# image file if logos are enabled
 #
 buttons = ["Majestic Jukebox","FluxFM - Jazzradio Schwarzenstein",
           "FluxFM - 80s","Radio Paradise - Mellow","KRFC"]
@@ -58,13 +60,45 @@ stations = ['http://uk3.internet-radio.com:8405/live',
 # set to False if using an alternate browser, else it will load the
 # (slow) python-based browser
 python_browser = True
-# the alternate browser
+# the alternate browser, a separate executable
 browser_executable = "C:/apps/bin/moodeView.exe"
 
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# A Widgets that overlays rectangles, for debugging mouse press areas
+#
+class RubberBandWidget(QWidget):
+
+    def __init__(self,parent = None):
+        super().__init__(parent)
+        self.rubberBands = []
+        self.hidden = True
+
+    def addRectangle(self,rect):
+        rubberBand = QRubberBand(QRubberBand.Line, self)
+        rubberBand.setGeometry(rect)
+        self.rubberBands.append(rubberBand)
+
+    def hide(self):
+        for rubberBand in self.rubberBands:
+            rubberBand.hide()
+            self.hidden = True
+
+    def show(self):
+        for rubberBand in self.rubberBands:
+            rubberBand.show()
+            self.hidden = False
+
+    def toggle(self):
+        if self.hidden:
+            self.show()
+        else:
+            self.hide()
+        
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # A QMainwindow with an image
 # The default scale is just the size of the image file.  It can be scaled
 # by applying a scale parameter
+#
 class BorderLessWindow(QMainWindow):
 
     def __init__(self,scale = 1.0):
@@ -75,7 +109,7 @@ class BorderLessWindow(QMainWindow):
         self.useRight = False
         self.resize(800,600)
 
-        central_widget = QWidget(self)
+        central_widget = RubberBandWidget(self)
         self.setCentralWidget(central_widget)
 
         self.imageLabel = QLabel(self)
@@ -141,6 +175,7 @@ class BorderLessWindow(QMainWindow):
         pass
     
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # record the position of the mouse when a button is pressed
     def mousePressEvent(self,event):
         self.pressPos = event.position() # save initial drag position
         if event.button() == Qt.RightButton:
@@ -158,6 +193,7 @@ class BorderLessWindow(QMainWindow):
             r = q + (event.position() - self.pressPos)
             self.move(int(r.x()),int(r.y()))
             
+    # record ctrl and alt (not used yet)
     def keyReleaseEvent(self,event):
         self.ctrl = False
         self.alt = False
@@ -174,21 +210,6 @@ class BorderLessWindow(QMainWindow):
         # print("ALT",self.alt,"CTRL",self.ctrl)
         
         
-# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# used for debugging knob positions, but it's not showing up
-class RectangleWidget(QWidget):
-    def __init__(self,parent,rect):
-        super().__init__(parent)
-        self.rect = rect
-        
-    def paintEvent(self, event):
-        with QPainter(self) as painter:
-            print("paint",self.rect)
-            painter.setPen(QPen(Qt.black,20))
-            painter.setBrush(QBrush(Qt.red))
-            painter.drawRect(self.rect)
-            print("done paint")
-            
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # An invisible QDial
 class InvisaDial(QDial):
@@ -212,17 +233,17 @@ class ClickableLabel(QLabel):
         self.mousePress.emit()
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# You can specify a scale to apply to the background images. The
-# rectanges will get re-sized by this scale
+# You can specify a scale to apply to the background image. The
+# rectangles will get re-sized by this scale
+#
 class MyBorderLessWindow(BorderLessWindow):
     def __init__(self):
 
-        self.loadSettings()
+        self.loadSettings()     # sets self.imageScale
         super().__init__(self.imageScale)
         self.toolTip = QToolTip(self)
 
-        # set application icon
-        # yet another Windows kludge
+        # set application icon,yet another Windows kludge
         if os.name == 'nt':
             import ctypes
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('moode_radio.app.1')
@@ -241,8 +262,8 @@ class MyBorderLessWindow(BorderLessWindow):
         self.button3Rect = QRect(512,ytop,xwidth,yheight)
         self.button4Rect = QRect(574,ytop,xwidth,yheight)
 
-        # rectangles of other places
-        self.volumeRect = QRect(135,375,250-135,480-375)
+        # rectangles of other knob places
+        self.volumeRect = QRect(145,375,250-135,480-375)
         self.tuningKnobRect = QRect(700,375,810-700,480-375)
         self.symbolRect  = QRect(457,118,500-457,180-118)
         self.songRect    = QRect(114,25,846-114,73-25)
@@ -266,13 +287,26 @@ class MyBorderLessWindow(BorderLessWindow):
             self.tunerRect      = transform.mapRect(self.tunerRect)
             self.logoRect       = transform.mapRect(self.logoRect)
 
+        # for debugging locations of knobs, call the popup 'toggle'
+        # to turn on/off
+        if True:
+            rubberBandWidget = self.centralWidget()
+            rubberBandWidget.addRectangle(self.button0Rect)
+            rubberBandWidget.addRectangle(self.button1Rect)
+            rubberBandWidget.addRectangle(self.button2Rect)
+            rubberBandWidget.addRectangle(self.button3Rect)
+            rubberBandWidget.addRectangle(self.button4Rect)
+            rubberBandWidget.addRectangle(self.volumeRect)
+            rubberBandWidget.addRectangle(self.tuningKnobRect)
+            rubberBandWidget.addRectangle(self.symbolRect)
+            rubberBandWidget.addRectangle(self.songRect)
+            rubberBandWidget.addRectangle(self.tunerRect)
+            rubberBandWidget.addRectangle(self.logoRect)
+            
         # the station list is not showing
         self.stationListShowing = False
         
-        # no worko
-        #self.rv = RectangleWidget(self,self.volumeRect)
-        #self.rv.move(self.volumeRect.x(),self.volumeRect.y())
-        
+        # create the volume dial
         self.volumeDial = InvisaDial(self)
         self.volumeDial.setGeometry(self.volumeRect)
         self.volumeDial.move(self.volumeRect.x(),self.volumeRect.y())
@@ -293,6 +327,8 @@ class MyBorderLessWindow(BorderLessWindow):
             self.plusButton.mousePress.connect(self.volumeUp)
             self.plusButton.hide()
             
+        # label to display text at top of radio, e.g. what's
+        # playing
         self.label = ClickableLabel(self)
         self.label.setGeometry(self.songRect)
         self.label.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
@@ -377,9 +413,9 @@ class MyBorderLessWindow(BorderLessWindow):
         proc = f"mpc --quiet -h {url} {which}"
         try:
             if os.name == 'nt':
-                subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 1)
+                subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 2)
             else:
-                subprocess.run(proc,shell=True,timeout = 1)
+                subprocess.run(proc,shell=True,timeout = 2)
         except subprocess.TimeoutExpired:
             self.label.setText(f"MPC Error, check URL:{url}")
         
@@ -423,6 +459,11 @@ class MyBorderLessWindow(BorderLessWindow):
     def clearList(self):
         self.cmd('clear');
         
+    # just for debugging locations of knobs
+    def toggleOverlays(self):
+        rubberBandWidget = self.centralWidget()
+        rubberBandWidget.toggle()
+            
     # add an action to a popup menu
     def addAction(self,name,popup,callback):
         a = QAction(name, self)
@@ -436,6 +477,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Minimize',popup,self.showMinimized)
         self.addAction('Browser',popup,self.launchBrowser)
         self.addAction('Clear Playlist',popup,self.clearList)
+        self.addAction('Toggle Overlays',popup,self.toggleOverlays)
         self.addAction('Exit',popup,self.close)
         popup.exec(point)
         
