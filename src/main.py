@@ -4,7 +4,11 @@
 # donn, Jan 14, 2024 - added timeouts to mpc
 # donn, Jan 15, 2024
 #   - left mouse now drags if no knob is under the mouse
-#   - added overlays to see positions of knobs for debugging
+#   - added overlays to see positions of knobs for debugging. Might
+#     change radio image if I can find another good one
+# donn, Jan 16, 2024
+#   - keep the station list open for selecting stations, previously
+#     it was closed when a station was selected
 #
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -522,6 +526,7 @@ class MyBorderLessWindow(BorderLessWindow):
     def tuningKnob(self):
         self.cmd('toggle')
             
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # a station was selected form the station list
     def stationSelected(self):
         station_url = self.stationView.url
@@ -533,9 +538,7 @@ class MyBorderLessWindow(BorderLessWindow):
                     name = f"{name}.jpg"
                     self.setLogoImage(name)
 
-        self.stationView.close()
-        self.stationListShowing = False
-        
+    # set flag indicating the list not showing
     def stationClosed(self):
         self.stationListShowing = False
         
@@ -548,6 +551,7 @@ class MyBorderLessWindow(BorderLessWindow):
             self.stationView.selected.connect(self.stationSelected)
             self.stationView.closed.connect(self.stationClosed)
             
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # start a browser by clicking on the "Phillips" image
     def symbol(self):
         point = QCursor.pos()
