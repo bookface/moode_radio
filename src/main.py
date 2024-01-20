@@ -357,6 +357,9 @@ class MyBorderLessWindow(BorderLessWindow):
 
         self.status()
 
+        # preserve the current selected row in stationView()
+        self.currentRow = 0
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def setLogoImage(self,fname):
         name  = f"radio-logos/{fname}"
@@ -538,15 +541,17 @@ class MyBorderLessWindow(BorderLessWindow):
                     name = f"{name}.jpg"
                     self.setLogoImage(name)
 
-    # set flag indicating the list not showing
-    def stationClosed(self):
+    # set flag indicating the list not showing and preserve the
+    # currently selected row
+    def stationClosed(self,row):
+        self.currentRow = row
         self.stationListShowing = False
         
     # display the station list
     def tuner(self,point):
         if self.stationListShowing == False:
             self.stationListShowing = True
-            self.stationView = StationView(self)
+            self.stationView = StationView(self.currentRow,self)
             self.stationView.show()
             self.stationView.selected.connect(self.stationSelected)
             self.stationView.closed.connect(self.stationClosed)

@@ -1,5 +1,6 @@
 
-from PySide6.QtCore import (Signal)
+from PySide6.QtCore import (Signal,QItemSelectionModel)
+
 from PySide6.QtWidgets import QMainWindow, QListWidget
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -12,9 +13,9 @@ import json
 class StationView(QMainWindow):
     # signals must be declared before init
     selected = Signal()
-    closed   = Signal()
+    closed   = Signal(int)
     
-    def __init__(self,parent=None):
+    def __init__(self,currentRow,parent=None):
         super().__init__(parent)
 
         self.list = QListWidget(self)
@@ -32,13 +33,19 @@ class StationView(QMainWindow):
         self.setCentralWidget(self.list)
         self.url = None
         self.name = None
+
+        # move to the last selected row instead of always going to
+        # the top of the list
+        self.list.setCurrentRow(currentRow,QItemSelectionModel.SelectCurrent)
         
+    # close the list and return the current selected row
     def closeEvent(self,e):
-        self.closed.emit()
+        row = self.list.currentRow()
+        self.closed.emit(row)
         self.close()
         
     # Item clicked. Set 'self.url' to the selected url, and emit
-    # 'selected'
+    # 'selected'. Keep list showing.
     def clicked(self,item):
         row = self.list.currentRow()
         item = self.list.item(row)
@@ -50,6 +57,6 @@ class StationView(QMainWindow):
 if __name__ == '__main__':
     from PySide6.QtWidgets import QApplication
     app = QApplication(sys.argv)
-    window = StationView()
+    window = StationView(0)
     window.show()
     sys.exit(app.exec())
