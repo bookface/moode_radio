@@ -20,14 +20,22 @@ class StationView(QMainWindow):
 
         self.list = QListWidget(self)
         self.list.itemClicked.connect(self.clicked)
-        self.urls = []
-        # Add items to the list
+        self.list.setSortingEnabled(True)
+
+        # urls are saved in a dictionary, indexed by
+        # the station name. Hopefully, there are no
+        # duplicate station names.
+        self.urls = {}
+
+        # Add items to the list and urls
         json_file = 'station_data.json'
         with open(json_file) as json_data:
             data = json.load(json_data) # returns a python dictionary
             for station in data['stations']:
-                self.list.addItem(station['name']) # ,station['station'])
-                self.urls.append(station['station'])
+                name = station['name']
+                url  = station['station']
+                self.list.addItem(name) # add to qlistwidget
+                self.urls[name] = url   # add to url dictionary
         self.resize(400,500)
         self.setWindowTitle("Station List")
         self.setCentralWidget(self.list)
@@ -47,10 +55,10 @@ class StationView(QMainWindow):
     # Item clicked. Set 'self.url' to the selected url, and emit
     # 'selected'. Keep list showing.
     def clicked(self,item):
-        row = self.list.currentRow()
-        item = self.list.item(row)
-        self.name = item.text()
-        self.url = self.urls[row]
+        row = self.list.currentRow() # current selected row
+        item = self.list.item(row)   # item in the row
+        self.name = item.text()      # get the name
+        self.url = self.urls[self.name] # get the url
         self.selected.emit()
         
 # just for testing

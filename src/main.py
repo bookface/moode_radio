@@ -317,22 +317,8 @@ class MyBorderLessWindow(BorderLessWindow):
         self.volumeDial.setPageStep(1)
         self.volumeDial.valueChanged.connect(self.volDial)
         
-        # Volume plus button - not sure where to put this,
-        # it didn't fit in with the radio look.
-        # Just use the scroll wheel on the volume knob to
-        # increment/decrement by 1
-        if False:
-            pixmap = QPixmap('images/plus.png')
-            self.plusButton = ClickableLabel(self)
-            self.plusButton.setPixmap(pixmap)
-            self.plusButton.move(self.volumeRect.x() + self.volumeRect.width(),self.volumeRect.y())
-            self.plusButton.resize(50,50)
-            self.plusButton.setScaledContents(True)
-            self.plusButton.mousePress.connect(self.volumeUp)
-            self.plusButton.hide()
-            
         # label to display text at top of radio, e.g. what's
-        # playing
+        # playing. Clicking it will update the value.
         self.label = ClickableLabel(self)
         self.label.setGeometry(self.songRect)
         self.label.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
@@ -420,9 +406,9 @@ class MyBorderLessWindow(BorderLessWindow):
         proc = f"mpc --quiet -h {url} {which}"
         try:
             if os.name == 'nt':
-                subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 2)
+                subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 3)
             else:
-                subprocess.run(proc,shell=True,timeout = 2)
+                subprocess.run(proc,shell=True,timeout = 3)
         except subprocess.TimeoutExpired:
             self.label.setText(f"MPC Error, check URL:{url}")
         
@@ -443,7 +429,7 @@ class MyBorderLessWindow(BorderLessWindow):
             process.wait(timeout=1)
             result=process.stdout.readlines()
         except subprocess.TimeoutExpired:
-            self.label.setText(f"Error In Communition, check URL:{url}")
+            self.label.setText(f"Error In Communication, check URL:{url}")
             os.kill(process.pid, signal.SIGTERM)
 
         return result
@@ -493,8 +479,8 @@ class MyBorderLessWindow(BorderLessWindow):
         result = self.cmdResult('current')
         if len(result) == 1:
             out = str(result)
-            out = out[2:]           # remove b", whatever that is
-            out = out[:-3]          # remove \n
+            out = out[3:]           # remove b"', whatever that is
+            out = out[:-4]          # remove trailing slash and \n
             self.label.setText(out)
             # self.checkLogoImage(out)
 
