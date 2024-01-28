@@ -1,14 +1,16 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #
-# donn, Jan 14, 2024 - added timeouts to mpc
+# donn, Jan 26, 2024
+#   - sorted the station view
+# donn, Jan 16, 2024
+#   - keep the station list open for selecting stations, previously
+#     it was closed when a station was selected
 # donn, Jan 15, 2024
 #   - left mouse now drags if no knob is under the mouse
 #   - added overlays to see positions of knobs for debugging. Might
 #     change radio image if I can find another good one
-# donn, Jan 16, 2024
-#   - keep the station list open for selecting stations, previously
-#     it was closed when a station was selected
+# donn, Jan 14, 2024 - added timeouts to mpc
 #
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -43,13 +45,17 @@ if os.name == 'nt':
 #
 url_for_moodeview = 'http://moode.local'
 url   = '192.168.10.68'
-image = 'images/radio1.png'
+
+
 #
 # the name of each Radio Button - they need to match the name of the
 # image file if logos are enabled
 #
-buttons = ["Majestic Jukebox","FluxFM - Jazzradio Schwarzenstein",
-          "FluxFM - 80s","Radio Paradise - Mellow","KRFC"]
+buttons = ["Majestic Jukebox",
+           "FluxFM - Jazzradio Schwarzenstein",
+           "FluxFM - 80s",
+           "Radio Paradise - Mellow",
+           "KRFC"]
 #
 # the url to load for each Radio Button
 #
@@ -105,7 +111,7 @@ class RubberBandWidget(QWidget):
 #
 class BorderLessWindow(QMainWindow):
 
-    def __init__(self,scale = 1.0):
+    def __init__(self,image,scale = 1.0):
         super().__init__()
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -237,14 +243,34 @@ class ClickableLabel(QLabel):
         self.mousePress.emit()
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# run with "-2" to load the second radio image
+def parseArgs():
+    import argparse
+    parser = argparse.ArgumentParser()
+    # background/showtoolbar, for compat sake
+    parser.add_argument('-2',action='store_true', required = False)
+    args = parser.parse_args()
+    dict = vars(args)           # convert to dictionary
+    return dict
+
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# Main Window
 # You can specify a scale to apply to the background image. The
 # rectangles will get re-sized by this scale
-#
 class MyBorderLessWindow(BorderLessWindow):
     def __init__(self):
 
-        self.loadSettings()     # sets self.imageScale
-        super().__init__(self.imageScale)
+        args = parseArgs()
+
+        # load image and image scale
+        group = None
+        if args["2"]: group = 'Radio2'
+        self.loadImageAndScale(group)
+
+        super().__init__(self.image,self.imageScale)
+
+        # load all other settings except radio 2 specific
+        self.loadSettings()
         self.toolTip = QToolTip(self)
 
         # set application icon,yet another Windows kludge
@@ -255,35 +281,35 @@ class MyBorderLessWindow(BorderLessWindow):
         self.icon = QIcon(pixmap)
         self.setWindowIcon(self.icon)
 
-        # radio button rectangles - all data hard-wired
-        # unfortunately
+        # radio button rectangles - default values
         ytop = 500
         yheight = 530-ytop
         xwidth  = 55
-        self.button0Rect = QRect(320,ytop,xwidth,yheight)
-        self.button1Rect = QRect(388,ytop,xwidth,yheight)
-        self.button2Rect = QRect(450,ytop,xwidth,yheight)
-        self.button3Rect = QRect(512,ytop,xwidth,yheight)
-        self.button4Rect = QRect(574,ytop,xwidth,yheight)
+        self.buttonRects = []
+        self.buttonRects.append(QRect(320,ytop,xwidth,yheight))
+        self.buttonRects.append(QRect(388,ytop,xwidth,yheight))
+        self.buttonRects.append(QRect(450,ytop,xwidth,yheight))
+        self.buttonRects.append(QRect(512,ytop,xwidth,yheight))
+        self.buttonRects.append(QRect(574,ytop,xwidth,yheight))
 
         # rectangles of other knob places
-        self.volumeRect = QRect(145,375,250-135,480-375)
+        self.volumeRect =     QRect(145,375,250-135,480-375)
         self.tuningKnobRect = QRect(700,375,810-700,480-375)
         self.symbolRect  = QRect(457,118,500-457,180-118)
         self.songRect    = QRect(114,25,846-114,73-25)
         self.tunerRect   = QRect(270,368,692-270,482-368)
         self.logoRect    = QRect(617,123,200,200)
         
+        # load the rectanges from the ini file
+        self.loadRectangles(group)
+        
         # scale the rectangles if modifying the background
         # image scale
         if self.imageScale != 1.0:
             transform = QTransform()
             transform = transform.scale(self.imageScale,self.imageScale)
-            self.button0Rect = transform.mapRect(self.button0Rect)
-            self.button1Rect = transform.mapRect(self.button1Rect)
-            self.button2Rect = transform.mapRect(self.button2Rect)
-            self.button3Rect = transform.mapRect(self.button3Rect)
-            self.button4Rect = transform.mapRect(self.button4Rect)
+            for i in range(len(self.buttonRects)):
+                self.buttonRects[i] = transform.mapRect(self.buttonRects[i])
             self.volumeRect     = transform.mapRect(self.volumeRect)
             self.tuningKnobRect = transform.mapRect(self.tuningKnobRect)
             self.symbolRect     = transform.mapRect(self.symbolRect)
@@ -295,11 +321,8 @@ class MyBorderLessWindow(BorderLessWindow):
         # to turn on/off
         if True:
             rubberBandWidget = self.centralWidget()
-            rubberBandWidget.addRectangle(self.button0Rect)
-            rubberBandWidget.addRectangle(self.button1Rect)
-            rubberBandWidget.addRectangle(self.button2Rect)
-            rubberBandWidget.addRectangle(self.button3Rect)
-            rubberBandWidget.addRectangle(self.button4Rect)
+            for button in self.buttonRects:
+                rubberBandWidget.addRectangle(button)
             rubberBandWidget.addRectangle(self.volumeRect)
             rubberBandWidget.addRectangle(self.tuningKnobRect)
             rubberBandWidget.addRectangle(self.symbolRect)
@@ -358,18 +381,13 @@ class MyBorderLessWindow(BorderLessWindow):
             pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
             self.logo.setPixmap(pixmap)
 
-    def checkLogoImage(self,fname):
-        if 'null' in str(self.logo.pixmap()):
-            self.setLogoImage(fname)
-        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # cmdResult() sometimes comes out as:
     #  :b'volume: 21%   repeat: off   random: off   single: off   consume: off'
     # other times it's an array, so have to figure out via the length
     # returned what we are getting back
     #
-    # sets the value of the volume dial only for now
-    #
+    # sets the value of the volume dial
     def status(self):
         result = self.cmdResult('')
         if len(result) == 0:
@@ -385,6 +403,26 @@ class MyBorderLessWindow(BorderLessWindow):
         self.volumeDial.setValue(int(out))
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # load just the name of the image and it's scale
+    def loadImageAndScale(self,group):
+        # defaults
+        self.image = 'images/radio1.png'
+        self.imageScale = 1.0
+        fname = 'moode_radio.ini'
+        if os.path.isfile(fname):
+            settings = QSettings(fname,QSettings.IniFormat)
+            if group != None:
+                settings.beginGroup(group)
+            r = settings.value("image")
+            if r != None:
+                self.image = r
+            r = settings.value("scale")
+            if r != None:
+                self.imageScale = float(r)
+                
+
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # load most other settings
     def loadSettings(self):
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
@@ -392,14 +430,49 @@ class MyBorderLessWindow(BorderLessWindow):
             global url,buttons,stations,python_browser
             global browser_executable
             url = settings.value('url')
-            for i in range(5):
+            numButtons = int(settings.value('numButtons',5))
+            for i in range(numButtons):
                 buttons[i] = settings.value(f"button{i}")
                 stations[i] = settings.value(f"station{i}")
             use_python_browser = settings.value('python_browser')
             python_browser = (int(use_python_browser) == 1)
             browser_executable = settings.value('browser_executable')
-            self.imageScale = float(settings.value('scale',1.0))
-        
+
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # load the rectanges defining the clickable buttons
+    def loadRectangles(self,group = None):
+        fname = 'moode_radio.ini'
+        if os.path.isfile(fname):
+            settings = QSettings(fname,QSettings.IniFormat)
+            if group != None:
+                settings.beginGroup(group)
+            numButtons = int(settings.value('numButtons',5))
+            for i in range(numButtons):
+                r = settings.value(f"buttonRect{i}")
+                if r != None:
+                    if i < len(self.buttonRects):
+                        self.buttonRects[i] =QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
+                    else:
+                        self.buttonRects.append(QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3])))
+
+            r = settings.value('volumeRect')
+            if r != None: self.volumeRect = QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
+            r = settings.value('tuningKnobRect')
+            if r != None: self.tuningKnobRect = QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
+            r = settings.value('symbolRect')
+            if r!= None: self.symbolRect = QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
+            r = settings.value('songRect')
+            if r!= None:self.songRect = QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
+            r = settings.value('tunerRect')
+            if r!= None: self.tunerRect = QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
+            r = settings.value('logoRect')
+            if r!= None: self.logoRect = QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
+
+            r = settings.value('station5')
+            if r != None:
+                buttons.append(settings.value('button5'))
+                stations.append(settings.value("station5"))
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # run an mpc command
     def cmd(self,which):
@@ -452,7 +525,7 @@ class MyBorderLessWindow(BorderLessWindow):
     def clearList(self):
         self.cmd('clear');
         
-    # just for debugging locations of knobs
+    # just for debugging, show the locations of knobs, etc.
     def toggleOverlays(self):
         rubberBandWidget = self.centralWidget()
         rubberBandWidget.toggle()
@@ -482,7 +555,11 @@ class MyBorderLessWindow(BorderLessWindow):
             out = out[3:]           # remove b"', whatever that is
             out = out[:-4]          # remove trailing slash and \n
             self.label.setText(out)
-            # self.checkLogoImage(out)
+            #
+            # Would be nice to figure out the logo from
+            # what's currently playing, but mpc 'current'
+            # is not going to match the logo images.
+            # self.checkLogoImage(whatsPlaying)
 
     # called when volume dial changed
     def volDial(self,value):
@@ -491,7 +568,7 @@ class MyBorderLessWindow(BorderLessWindow):
         # self.toolTip.showText(event.globalPos(),str,msecShowTime = 3000)
         self.label.setText(f"Volume {value}")
         
-    # one of the 5 radio buttons was pressed
+    # one of the radio buttons was pressed
     def radioButton(self,i):
         if self.add(stations[i]) == True:
             self.setLogoImage(buttons[i])
@@ -527,7 +604,7 @@ class MyBorderLessWindow(BorderLessWindow):
                     name = f"{name}.jpg"
                     self.setLogoImage(name)
 
-    # set flag indicating the list not showing and preserve the
+    # set a flag indicating the list is not showing and preserve the
     # currently selected row
     def stationClosed(self,row):
         self.currentRow = row
@@ -543,7 +620,7 @@ class MyBorderLessWindow(BorderLessWindow):
             self.stationView.closed.connect(self.stationClosed)
             
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # start a browser by clicking on the "Phillips" image
+    # start a browser
     def symbol(self):
         point = QCursor.pos()
         point.setY(point.y()- 25)
@@ -574,22 +651,16 @@ class MyBorderLessWindow(BorderLessWindow):
         # event.pos() is QPoint, not QPointF!
         if self.volumeRect.contains(event.pos()):
             self.toolTip.showText(event.globalPos(),"Set Volume",msecShowTime = 3000)
-
-        elif self.button0Rect.contains(event.pos()):
-            self.toolTip.showText(event.globalPos(),buttons[0],msecShowTime = 2000)
-        elif self.button1Rect.contains(event.pos()):
-            self.toolTip.showText(event.globalPos(),buttons[1],msecShowTime = 2000)
-        elif self.button2Rect.contains(event.pos()):
-            self.toolTip.showText(event.globalPos(),buttons[2],msecShowTime = 2000)
-        elif self.button3Rect.contains(event.pos()):
-            self.toolTip.showText(event.globalPos(),buttons[3],msecShowTime = 2000)
-        elif self.button4Rect.contains(event.pos()):
-            self.toolTip.showText(event.globalPos(),buttons[4],msecShowTime = 2000)
-
         elif self.tuningKnobRect.contains(event.pos()):
             self.toolTip.showText(event.globalPos(),'Play/Pause',msecShowTime = 2000)
         elif self.tunerRect.contains(event.pos()):
             self.toolTip.showText(event.globalPos(),'Select Station',msecShowTime = 2000)
+        else:
+            for i in range(len(self.buttonRects)):
+                if self.buttonRects[i].contains(event.pos()):
+                    if i < len(buttons):
+                        self.toolTip.showText(event.globalPos(),buttons[i],msecShowTime = 2000)
+                    return
                 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # left mouse pressed
@@ -599,31 +670,22 @@ class MyBorderLessWindow(BorderLessWindow):
         x = pos.x(); y = pos.y()
         point = QPoint(x,y)
             
-        #
         # if none of these happen, then drag with the mouse
-        #
         save = self.pressPos
         self.pressPos = None
-        if self.button0Rect.contains(point):
-            self.radioButton(0)
-        elif self.button1Rect.contains(point):
-            self.radioButton(1)
-        elif self.button2Rect.contains(point):
-            self.radioButton(2)
-        elif self.button3Rect.contains(point):
-            self.radioButton(3)
-        elif self.button4Rect.contains(point):
-            self.radioButton(4)
-
-        elif self.tuningKnobRect.contains(point):
+        if self.tuningKnobRect.contains(point):
             self.tuningKnob()
-
         elif self.symbolRect.contains(point):
             self.symbol()
         elif self.tunerRect.contains(point):
             self.tuner(point)
-        else:                   # restore pressPos for dragging
-            self.pressPos = save
+        else:
+            for i in range(len(self.buttonRects)):
+                if self.buttonRects[i].contains(point):
+                    self.radioButton(i)
+                    return
+        # restore pressPos for dragging
+        self.pressPos = save
 
 #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 if __name__ == '__main__':
