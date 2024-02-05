@@ -12,6 +12,11 @@
 #     change radio image if I can find another good one
 # donn, Jan 14, 2024 - added timeouts to mpc
 #
+# songRect   = text displaying currently playing
+# symbolRect = pop-up menu
+# tunerRect  = station selector
+# logoRect   = station image if radio-logos exist
+#
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from PySide6.QtCore import (Qt, QPoint, QPointF, QSize, QEvent,
@@ -88,6 +93,11 @@ class RubberBandWidget(QWidget):
         rubberBand.setGeometry(rect)
         self.rubberBands.append(rubberBand)
 
+    def delete(self):
+        for rubberBand in self.rubberBands:
+            rubberBand.deleteLater()
+        self.rubberBands.clear()
+        
     def hide(self):
         for rubberBand in self.rubberBands:
             rubberBand.hide()
@@ -139,6 +149,10 @@ class BorderLessWindow(QMainWindow):
         self.ctrl = False
         self.alt = False
 
+        self.loadImageAndScale(image,scale)
+
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    def loadImageAndScale(self,image,scale):
         self.scale = scale
         self.loadImage(image)
 
@@ -166,13 +180,12 @@ class BorderLessWindow(QMainWindow):
         # call self.setAttribute(Qt.WA_TranslucentBackground) for
         # transparent background
         self.pixmap = QPixmap.fromImage(image)
-        sz = QSize(w, h) # self.width(),self.height())
+        sz = QSize(w, h)
         if self.scale != 1.0:
             sz = QSize(w * self.scale, h*self.scale)
-        self.resize(sz) # w/2,h/2)
+        self.resize(sz)
 
-        # aspect = Qt.IgnoreAspectRatio
-        aspect = Qt.KeepAspectRatio
+        aspect = Qt.KeepAspectRatio # or Qt.IgnoreAspectRatio
         self.pixmap = self.pixmap.scaled(sz,aspect,Qt.SmoothTransformation)
         self.imageLabel.setPixmap(self.pixmap)
 
@@ -211,7 +224,9 @@ class BorderLessWindow(QMainWindow):
     def keyPressEvent (self,event):
         if event.key() == Qt.Key_Escape:
             self.close()
-
+        elif event.key() == Qt.Key_T:
+            self.toggleOverlays()
+            
         m = event.modifiers()
         if m == Qt.ControlModifier:
             self.ctrl = True
@@ -221,7 +236,8 @@ class BorderLessWindow(QMainWindow):
         
         
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# An invisible QDial
+# An invisible QDial - rotatable, but probably easier to just use
+# the mouse scroll wheel
 class InvisaDial(QDial):
 
     def __init__(self,parent = None):
@@ -243,12 +259,14 @@ class ClickableLabel(QLabel):
         self.mousePress.emit()
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# run with "-2" to load the second radio image
+# run with "-2" or "-3" to load the other radio images
 def parseArgs():
     import argparse
     parser = argparse.ArgumentParser()
     # background/showtoolbar, for compat sake
     parser.add_argument('-2',action='store_true', required = False)
+    parser.add_argument('-3',action='store_true', required = False)
+    parser.add_argument('-4',action='store_true', required = False)
     args = parser.parse_args()
     dict = vars(args)           # convert to dictionary
     return dict
@@ -265,11 +283,14 @@ class MyBorderLessWindow(BorderLessWindow):
         # load image and image scale
         group = None
         if args["2"]: group = 'Radio2'
-        self.loadImageAndScale(group)
+        elif args["3"]: group = 'Radio3'
+        elif args["4"]: group = 'Radio4'
+        # read ini file for image and scale
+        self.setImageAndScale(group)
 
         super().__init__(self.image,self.imageScale)
 
-        # load all other settings except radio 2 specific
+        # load all other settings
         self.loadSettings()
         self.toolTip = QToolTip(self)
 
@@ -281,54 +302,9 @@ class MyBorderLessWindow(BorderLessWindow):
         self.icon = QIcon(pixmap)
         self.setWindowIcon(self.icon)
 
-        # radio button rectangles - default values
-        ytop = 500
-        yheight = 530-ytop
-        xwidth  = 55
-        self.buttonRects = []
-        self.buttonRects.append(QRect(320,ytop,xwidth,yheight))
-        self.buttonRects.append(QRect(388,ytop,xwidth,yheight))
-        self.buttonRects.append(QRect(450,ytop,xwidth,yheight))
-        self.buttonRects.append(QRect(512,ytop,xwidth,yheight))
-        self.buttonRects.append(QRect(574,ytop,xwidth,yheight))
-
-        # rectangles of other knob places
-        self.volumeRect =     QRect(145,375,250-135,480-375)
-        self.tuningKnobRect = QRect(700,375,810-700,480-375)
-        self.symbolRect  = QRect(457,118,500-457,180-118)
-        self.songRect    = QRect(114,25,846-114,73-25)
-        self.tunerRect   = QRect(270,368,692-270,482-368)
-        self.logoRect    = QRect(617,123,200,200)
-        
-        # load the rectanges from the ini file
-        self.loadRectangles(group)
-        
-        # scale the rectangles if modifying the background
-        # image scale
-        if self.imageScale != 1.0:
-            transform = QTransform()
-            transform = transform.scale(self.imageScale,self.imageScale)
-            for i in range(len(self.buttonRects)):
-                self.buttonRects[i] = transform.mapRect(self.buttonRects[i])
-            self.volumeRect     = transform.mapRect(self.volumeRect)
-            self.tuningKnobRect = transform.mapRect(self.tuningKnobRect)
-            self.symbolRect     = transform.mapRect(self.symbolRect)
-            self.songRect       = transform.mapRect(self.songRect)
-            self.tunerRect      = transform.mapRect(self.tunerRect)
-            self.logoRect       = transform.mapRect(self.logoRect)
-
-        # for debugging locations of knobs, call the popup 'toggle'
-        # to turn on/off
-        if True:
-            rubberBandWidget = self.centralWidget()
-            for button in self.buttonRects:
-                rubberBandWidget.addRectangle(button)
-            rubberBandWidget.addRectangle(self.volumeRect)
-            rubberBandWidget.addRectangle(self.tuningKnobRect)
-            rubberBandWidget.addRectangle(self.symbolRect)
-            rubberBandWidget.addRectangle(self.songRect)
-            rubberBandWidget.addRectangle(self.tunerRect)
-            rubberBandWidget.addRectangle(self.logoRect)
+        # set up the rectangles for the knobs
+        self.initRectangles()     # initialize the array
+        self.setRectangles(group) # load the array from ini file
             
         # the station list is not showing
         self.stationListShowing = False
@@ -347,7 +323,10 @@ class MyBorderLessWindow(BorderLessWindow):
         self.label.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
         self.label.mousePress.connect(self.currentPlaying)
         makeCornersRound(self.label)
-        self.label.setStyleSheet('color:white;background-color: rgba(0,0,0,0%)');
+        if self.label_style != None:
+            self.label.setStyleSheet(self.label_style)
+        else:
+            self.label.setStyleSheet('color:white;background-color: rgba(0,0,0,0%)');
 
         # logos - enabled if ./radio-logos directory exists
         self.logo = None
@@ -368,7 +347,68 @@ class MyBorderLessWindow(BorderLessWindow):
 
         # preserve the current selected row in stationView()
         self.currentRow = 0
+        
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # create the knob rectangles and initialize with some default values
+    def initRectangles(self):
+        ytop = 503
+        yheight = 530-ytop
+        xwidth  = 55
+        self.buttonRects = []
 
+        self.buttonRects.append(QRect(320,ytop,xwidth,yheight))
+        self.buttonRects.append(QRect(388,ytop,xwidth,yheight))
+        self.buttonRects.append(QRect(450,ytop,xwidth,yheight))
+        self.buttonRects.append(QRect(512,ytop,xwidth,yheight))
+        self.buttonRects.append(QRect(574,ytop,xwidth,yheight))
+
+        # 10 buttons max
+        # for i in range(5):
+        # self.buttonRects.append(QRect(0,0,0,0))
+
+        # rectangles of other knob places
+        self.volumeRect     = QRect(145,380,250-135,480-375)
+        self.tuningKnobRect = QRect(703,380,810-700,480-375)
+        self.symbolRect  = QRect(457,118,500-457,180-118)
+        self.songRect    = QRect(114,35,846-114,73-25)
+        self.tunerRect   = QRect(270,368,692-270,482-368)
+        self.logoRect    = QRect(617,123,200,200)
+
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # set the values of the rectangles. Load from ini, scale, and
+    # create rubberband overlays
+    def setRectangles(self,group):
+
+        # load the rectangles from the ini file
+        self.loadRectanglesFromIni(group)
+        
+        # scale the rectangles if modifying the background's
+        # image scale
+        if self.imageScale != 1.0:
+            transform = QTransform()
+            transform = transform.scale(self.imageScale,self.imageScale)
+            for i in range(len(self.buttonRects)):
+                self.buttonRects[i] = transform.mapRect(self.buttonRects[i])
+            self.volumeRect     = transform.mapRect(self.volumeRect)
+            self.tuningKnobRect = transform.mapRect(self.tuningKnobRect)
+            self.symbolRect     = transform.mapRect(self.symbolRect)
+            self.songRect       = transform.mapRect(self.songRect)
+            self.tunerRect      = transform.mapRect(self.tunerRect)
+            self.logoRect       = transform.mapRect(self.logoRect)
+
+        # for debugging locations of knobs, call the popup 'toggle'
+        # to turn on/off
+        rubberBandWidget = self.centralWidget()
+        rubberBandWidget.delete()
+        for button in self.buttonRects:
+            rubberBandWidget.addRectangle(button)
+        rubberBandWidget.addRectangle(self.volumeRect)
+        rubberBandWidget.addRectangle(self.tuningKnobRect)
+        rubberBandWidget.addRectangle(self.symbolRect)
+        rubberBandWidget.addRectangle(self.songRect)
+        rubberBandWidget.addRectangle(self.tunerRect)
+        rubberBandWidget.addRectangle(self.logoRect)
+        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def setLogoImage(self,fname):
         name  = f"radio-logos/{fname}"
@@ -403,11 +443,12 @@ class MyBorderLessWindow(BorderLessWindow):
         self.volumeDial.setValue(int(out))
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # load just the name of the image and it's scale
-    def loadImageAndScale(self,group):
+    # set the name of the image and it's scale
+    def setImageAndScale(self,group):
         # defaults
         self.image = 'images/radio1.png'
         self.imageScale = 1.0
+        self.label_style = None
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
@@ -419,6 +460,9 @@ class MyBorderLessWindow(BorderLessWindow):
             r = settings.value("scale")
             if r != None:
                 self.imageScale = float(r)
+            r = settings.value("label_style")
+            if r != None:
+                self.label_style = r
                 
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -440,7 +484,7 @@ class MyBorderLessWindow(BorderLessWindow):
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load the rectanges defining the clickable buttons
-    def loadRectangles(self,group = None):
+    def loadRectanglesFromIni(self,group = None):
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
@@ -507,11 +551,13 @@ class MyBorderLessWindow(BorderLessWindow):
 
         return result
 
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # return the length of the playlist
     def playlistLength(self):
         result = self.cmdResult('playlist')
         return len(result)
 
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # add a url to the bottom of the playlist and play it
     def add(self,url):
         self.cmd(f'add {url}')
@@ -521,25 +567,52 @@ class MyBorderLessWindow(BorderLessWindow):
             return True
         return False
     
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # clears the playlist
     def clearList(self):
         self.cmd('clear');
         
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # just for debugging, show the locations of knobs, etc.
     def toggleOverlays(self):
         rubberBandWidget = self.centralWidget()
         rubberBandWidget.toggle()
             
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # add an action to a popup menu
     def addAction(self,name,popup,callback):
         a = QAction(name, self)
         popup.addAction(a)
         a.triggered.connect(callback)
 
+    # easiest way to change the radio image is to just
+    # restart the program
+    def restart(self,arg):
+        if os.name == 'nt':
+            os.execv(sys.executable, [f"python main.py {arg}"])
+        else:
+            os.execv(sys.executable, [f"python3 main.py {arg}"])
+        
+    def radio1(self):
+        self.restart('')
+
+    def radio2(self):
+        self.restart('-2')
+
+    def radio3(self):
+        self.restart('-3')
+
+    def radio4(self):
+        self.restart('-4')
+            
     # popup menu
     def popupMenu(self,point):
         popup = QMenu(self)
         popup.setStyleSheet('background-color: white; selection-color:red; font-size: 20px ')
+        self.addAction('Radio 1',popup,self.radio1)
+        self.addAction('Radio 2',popup,self.radio2)
+        self.addAction('Radio 3',popup,self.radio3)
+        self.addAction('Radio 4',popup,self.radio4)
         self.addAction('Minimize',popup,self.showMinimized)
         self.addAction('Browser',popup,self.launchBrowser)
         self.addAction('Clear Playlist',popup,self.clearList)
@@ -547,6 +620,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Exit',popup,self.close)
         popup.exec(point)
         
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # display the currently playing song
     def currentPlaying(self):
         result = self.cmdResult('current')
