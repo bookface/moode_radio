@@ -281,7 +281,7 @@ class MyBorderLessWindow(BorderLessWindow):
         args = parseArgs()
 
         # load image and image scale
-        group = None
+        group = 'Radio1'
         if args["2"]: group = 'Radio2'
         elif args["3"]: group = 'Radio3'
         elif args["4"]: group = 'Radio4'
@@ -291,7 +291,7 @@ class MyBorderLessWindow(BorderLessWindow):
         super().__init__(self.image,self.imageScale)
 
         # load all other settings
-        self.loadSettings()
+        self.loadSettings(group)
         self.toolTip = QToolTip(self)
 
         # set application icon,yet another Windows kludge
@@ -449,7 +449,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.image = 'images/radio1.png'
         self.imageScale = 1.0
         self.label_style = None
-        fname = 'moode_radio.ini'
+        fname = 'moode_system.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
             if group != None:
@@ -467,25 +467,58 @@ class MyBorderLessWindow(BorderLessWindow):
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load most other settings
-    def loadSettings(self):
+    def loadSettings(self,group):
+        # get num buttons from system file
+        fname = 'moode_system.ini'
+        numButtons = 5
+        if os.path.isfile(fname):
+            settings = QSettings(fname,QSettings.IniFormat)
+            if group != None:
+                settings.beginGroup(group)
+            numButtons = int(settings.value('numButtons',5))
+
+        # personal settings next
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
-            global url,buttons,stations,python_browser
-            global browser_executable
+            settings.beginGroup('General')
+            global url,stations,buttons
             url = settings.value('url')
-            numButtons = int(settings.value('numButtons',5))
+            for i in range(5):  # 5 buttons default
+                v = settings.value(f"button{i}")
+                if v != None:
+                    buttons[i] = v
+                v = settings.value(f"station{i}")
+                if v != None:
+                    stations[i] = v
+
+            global use_python_browser,python_browser
+            global browser_executable
+            s = settings.value('python_browser')
+            if s != None:
+                use_python_browser = s
+                python_browser = (int(use_python_browser) == 1)
+            s = settings.value('browser_executable')
+            if s != None:
+                browser_executable = settings.value('browser_executable')
+
+        # default is 5 buttons. Some radios can contain more then
+        # 5, so load the additional buttons 
+        if os.path.isfile(fname):
+            settings = QSettings(fname,QSettings.IniFormat)
+            settings.beginGroup(group)
             for i in range(numButtons):
-                buttons[i] = settings.value(f"button{i}")
-                stations[i] = settings.value(f"station{i}")
-            use_python_browser = settings.value('python_browser')
-            python_browser = (int(use_python_browser) == 1)
-            browser_executable = settings.value('browser_executable')
+                v = settings.value(f"button{i}")
+                if v != None:
+                    buttons.append(v)
+                v = settings.value(f"station{i}")
+                if v != None:
+                    stations.append(v)
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load the rectanges defining the clickable buttons
-    def loadRectanglesFromIni(self,group = None):
-        fname = 'moode_radio.ini'
+    def loadRectanglesFromIni(self,group):
+        fname = 'moode_system.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
             if group != None:
@@ -589,7 +622,7 @@ class MyBorderLessWindow(BorderLessWindow):
     # restart the program
     def restart(self,arg):
         if os.name == 'nt':
-            os.execv(sys.executable, [f"python main.py {arg}"])
+            os.execv(sys.executable, [f"pythonw main.py {arg}"])
         else:
             os.execv(sys.executable, [f"python3 main.py {arg}"])
         
