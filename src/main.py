@@ -481,7 +481,6 @@ class MyBorderLessWindow(BorderLessWindow):
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
-            settings.beginGroup('General')
             global url,stations,buttons
             url = settings.value('url')
             for i in range(5):  # 5 buttons default
