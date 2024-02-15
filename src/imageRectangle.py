@@ -43,8 +43,8 @@ class ImageOutlineApp(QApplication):
         self.image_item.setPixmap(pixmap)
         w = pixmap.width()
         h = pixmap.height()
-        self.view.setSceneRect(0, 0, w, h)
-
+        self.view.resize(w, h)
+        
     def keyPressEvent (self,event):
         if event.key() == Qt.Key_Escape:
             self.exit(0)

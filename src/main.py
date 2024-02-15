@@ -267,6 +267,7 @@ def parseArgs():
     parser.add_argument('-2',action='store_true', required = False)
     parser.add_argument('-3',action='store_true', required = False)
     parser.add_argument('-4',action='store_true', required = False)
+    parser.add_argument('-5',action='store_true', required = False)
     args = parser.parse_args()
     dict = vars(args)           # convert to dictionary
     return dict
@@ -285,6 +286,7 @@ class MyBorderLessWindow(BorderLessWindow):
         if args["2"]: group = 'Radio2'
         elif args["3"]: group = 'Radio3'
         elif args["4"]: group = 'Radio4'
+        elif args["5"]: group = 'Radio5'
         # read ini file for image and scale
         self.setImageAndScale(group)
 
@@ -334,6 +336,7 @@ class MyBorderLessWindow(BorderLessWindow):
             self.logo = QLabel(self)
             self.logo.setGeometry(self.logoRect)
             self.logo.setScaledContents(True)
+            self.setLogoImage('')
             
         # display currently playing
         self.currentPlaying()
@@ -415,12 +418,18 @@ class MyBorderLessWindow(BorderLessWindow):
         if not os.path.isfile(name):
             name  = f"radio-logos/{fname}.jpg"
         if os.path.isfile(name):
-            image = QImage(name)
-            pixmap = QPixmap.fromImage(image)
-            sz = QSize(image.width(),image.height())
-            pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
-            self.logo.setPixmap(pixmap)
+            self.setLogo(name)
+        else:
+            name  = 'images/notfound.png'
+            self.setLogo(name)
 
+    def setLogo(self,name):
+        image = QImage(name)
+        pixmap = QPixmap.fromImage(image)
+        sz = QSize(image.width(),image.height())
+        pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+        self.logo.setPixmap(pixmap)
+        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # cmdResult() sometimes comes out as:
     #  :b'volume: 21%   repeat: off   random: off   single: off   consume: off'
@@ -592,6 +601,7 @@ class MyBorderLessWindow(BorderLessWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # add a url to the bottom of the playlist and play it
     def add(self,url):
+        self.setLogoImage('')
         self.cmd(f'add {url}')
         result = self.playlistLength()
         if result > 0:
@@ -636,6 +646,9 @@ class MyBorderLessWindow(BorderLessWindow):
 
     def radio4(self):
         self.restart('-4')
+
+    def radio5(self):
+        self.restart('-5')
             
     # popup menu
     def popupMenu(self,point):
@@ -645,6 +658,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Radio 2',popup,self.radio2)
         self.addAction('Radio 3',popup,self.radio3)
         self.addAction('Radio 4',popup,self.radio4)
+        self.addAction('Radio 5',popup,self.radio5)
         self.addAction('Minimize',popup,self.showMinimized)
         self.addAction('Browser',popup,self.launchBrowser)
         self.addAction('Clear Playlist',popup,self.clearList)
