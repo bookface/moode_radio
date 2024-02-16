@@ -210,12 +210,11 @@ class BorderLessWindow(QMainWindow):
 
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    def mouseMoveEvent(self,event):
-        if self.pressPos != None:  
-            q = QPointF(self.x(),self.y())
-            r = q + (event.position() - self.pressPos)
-            self.move(int(r.x()),int(r.y()))
-            
+    def mouseMoveEvent(self, event):
+        x=event.globalPosition().x()
+        y=event.globalPosition().y()
+        self.move(x-self.pressPos.x(), y-self.pressPos.y())
+        
     # record ctrl and alt (not used yet)
     def keyReleaseEvent(self,event):
         self.ctrl = False
@@ -259,11 +258,12 @@ class ClickableLabel(QLabel):
         self.mousePress.emit()
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# run with "-2" or "-3" to load the other radio images
+# run with "-2", etc to load the other radio images
 def parseArgs():
     import argparse
     parser = argparse.ArgumentParser()
     # background/showtoolbar, for compat sake
+    parser.add_argument('-1',action='store_true', required = False)
     parser.add_argument('-2',action='store_true', required = False)
     parser.add_argument('-3',action='store_true', required = False)
     parser.add_argument('-4',action='store_true', required = False)
@@ -632,11 +632,11 @@ class MyBorderLessWindow(BorderLessWindow):
     def restart(self,arg):
         if os.name == 'nt':
             os.execv(sys.executable, [f"pythonw main.py {arg}"])
-        else:
-            os.execv(sys.executable, [f"python3 main.py {arg}"])
+        else:                   # linux
+            os.execl(sys.executable, 'python3', __file__, arg)
         
     def radio1(self):
-        self.restart('')
+        self.restart('-1')
 
     def radio2(self):
         self.restart('-2')
