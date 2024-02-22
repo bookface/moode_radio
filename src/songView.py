@@ -1,7 +1,3 @@
-# mpc add easystore/...<name>
-# mpc clear
-# mpc play 1
-
 
 import sys
 from PySide6.QtCore import QDir, Qt
@@ -25,7 +21,7 @@ class DirectoryTreeApp(QMainWindow):
     # run an mpc command
     def cmd(self,which):
         proc = f"mpc --quiet -h {self.url} {which}"
-        print('proc',proc)
+        # print('proc',proc)
         try:
             if os.name == 'nt':
                 subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 3)
@@ -62,10 +58,14 @@ class DirectoryTreeApp(QMainWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # transform from local path to raspberry pi path
     def fixPath(self,path):
-        p = path.replace("\\", "/") # change windows annoying back slashes
         # this seems to change randomly
-        return p.replace("X:/Music/",'easystore/')
-        # return p.replace("X:/",'easystore/')
+        p = path.replace("\\", "/") # change windows annoying back slashes
+        if os.name == 'nt':
+            return p.replace("X:/Music",'easystore')
+        else:
+            import getpass
+            user = getpass.getuser()
+            return p.replace(f"/media/{user}/easystore/Music",'easystore')
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # add an action to a popup menu
@@ -129,7 +129,7 @@ class DirectoryTreeApp(QMainWindow):
 
         self.url   = '192.168.1.12'
 
-        self.setWindowTitle(f"Song Selector {self.url}")
+        self.setWindowTitle(f"Music Selector {self.url}")
         self.setGeometry(100, 100, 800, 1000)
 
         self.central_widget = QWidget(self)
@@ -176,7 +176,12 @@ class DirectoryTreeApp(QMainWindow):
         # Create a QFileSystemModel to represent the file system
         self.fileSystemModel = self.create_fileSystemModel()
         self.treeView.setModel(self.fileSystemModel)
-        self.treeView.setRootIndex(self.fileSystemModel.index("X:/Music"))
+        if os.name == 'nt':
+            self.treeView.setRootIndex(self.fileSystemModel.index("X:/Music"))
+        else:
+            import getpass
+            user = getpass.getuser()
+            self.treeView.setRootIndex(self.fileSystemModel.index(f"/media/{user}/easystore/Music"))
         self.treeView.setColumnWidth(0,400)
 
         
