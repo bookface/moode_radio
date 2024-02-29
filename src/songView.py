@@ -1,4 +1,26 @@
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+#
+# This loads a list of files on the system and requests moode
+# to play either the song or the directory.
+#
+# It is very system dependant.  The USB drive I have attached is
+# called "easystore" and it is shared with the raspberry by
+# the same name
 
+# On Windows, it is mapped to drive "X:", on Linux it will be
+# be mounted as /media/<username>/easystore.
+#
+# To get this to work on any system, modify fixPath() to map
+# the local directory to the raspberry pi mounted directory.
+# Same with the constructor, where it loads the file names
+# into QFileSystemModel.
+#
+# Just search for X:/Music and make changes as needed
+#
+# TODO: Yeah, put the system dependant stuff in an ini
+#       file.
+#
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 import sys
 from PySide6.QtCore import QDir, Qt
 from PySide6.QtWidgets import (QApplication, QMainWindow,
@@ -33,7 +55,7 @@ class DirectoryTreeApp(QMainWindow):
     #
     # run an mpc command and get something back
     # not used right now
-    # could be used to play last
+    # could be used to play the last item in the play list
     #   result = self.cmdResult('playlist')
     #   last = len(result) + 1
     #   self.cmd(f"play {last}")
