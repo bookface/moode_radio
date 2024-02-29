@@ -282,18 +282,19 @@ class MyBorderLessWindow(BorderLessWindow):
         args = parseArgs()
 
         # load image and image scale
-        group = 'Radio1'
-        if args["2"]: group = 'Radio2'
-        elif args["3"]: group = 'Radio3'
-        elif args["4"]: group = 'Radio4'
-        elif args["5"]: group = 'Radio5'
+        self.group = self.getLast()
+        if args["1"]:   self.group = 'Radio1'
+        elif args["2"]: self.group = 'Radio2'
+        elif args["3"]: self.group = 'Radio3'
+        elif args["4"]: self.group = 'Radio4'
+        elif args["5"]: self.group = 'Radio5'
         # read ini file for image and scale
-        self.setImageAndScale(group)
+        self.setImageAndScale(self.group)
 
         super().__init__(self.image,self.imageScale)
 
         # load all other settings
-        self.loadSettings(group)
+        self.loadSettings(self.group)
         self.toolTip = QToolTip(self)
 
         # set application icon,yet another Windows kludge
@@ -306,7 +307,7 @@ class MyBorderLessWindow(BorderLessWindow):
 
         # set up the rectangles for the knobs
         self.initRectangles()     # initialize the array
-        self.setRectangles(group) # load the array from ini file
+        self.setRectangles(self.group) # load the array from ini file
             
         # the station list is not showing
         self.stationListShowing = False
@@ -350,6 +351,20 @@ class MyBorderLessWindow(BorderLessWindow):
 
         # preserve the current selected row in stationView()
         self.currentRow = 0
+        
+    def getLast(self):
+        group = 'Radio1'
+        fname = 'moode_last.ini'
+        if os.path.isfile(fname):
+            settings = QSettings(fname,QSettings.IniFormat)
+            group = settings.value("last")
+        return group
+    
+    def closeEvent(self,event):
+        fname = 'moode_last.ini'
+        settings = QSettings(fname,QSettings.IniFormat)
+        settings.setValue("geometry", self.saveGeometry())
+        settings.setValue("last", self.group)
         
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # create the knob rectangles and initialize with some default values

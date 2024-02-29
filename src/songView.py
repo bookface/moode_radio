@@ -149,7 +149,7 @@ class DirectoryTreeApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.url   = '192.168.1.12'
+        self.url   = '192.168.1.2'
 
         self.setWindowTitle(f"Music Selector {self.url}")
         self.setGeometry(100, 100, 800, 1000)
