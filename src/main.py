@@ -1,6 +1,8 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #
+# donn, Mar 1, 2024
+#   - move borderLessWindow to a separate file
 # donn, Jan 26, 2024
 #   - sorted the station view
 # donn, Jan 16, 2024
@@ -12,29 +14,28 @@
 #     change radio image if I can find another good one
 # donn, Jan 14, 2024 - added timeouts to mpc
 #
-# songRect   = text displaying currently playing
-# symbolRect = pop-up menu
-# tunerRect  = station selector
-# logoRect   = station image if radio-logos exist
+# volumeRect     = Volume knob
+# tuningKnobRect = Tuning knob
+# symbolRect     = pop-up menu place
+# songRect       = text displaying currently playing
+# tunerRect      = station selector
+# logoRect       = station image if radio-logos exist
 #
-from PySide6 import QtCore, QtGui, QtWidgets
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 from PySide6.QtCore import (Qt, QPoint, QPointF, QSize, QEvent,
-                            QRect,QTimer, Signal, QSettings)
-
-from PySide6.QtWidgets import (QApplication, QMainWindow, QFrame,
-                               QMessageBox, QWidget, QLabel, QSizePolicy,
-                               QVBoxLayout, QToolTip, QDial, QRubberBand,
-                               QPushButton, QMenu, QListView,QComboBox)
-
-from PySide6.QtGui import (QPixmap,QPalette,QImage,QPainter,
-                           QHoverEvent, QBrush,QPen,QFont,
-                           QTransform,QCursor,QAction,
+                            QRect, QTimer, Signal, QSettings)
+from PySide6.QtWidgets import (QApplication, QMessageBox, QLabel,
+                               QToolTip, QDial, QRubberBand,
+                               QMenu,QListView)
+from PySide6.QtGui import (QPixmap,QImage,QHoverEvent, QBrush,
+                           QPen,QFont,QTransform,QCursor,QAction,
                            QIcon)
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 from roundCorners import makeCornersRound
 from stationView  import StationView
+from borderLessWindow import BorderLessWindow,RubberBandWidget
 
 import os
 
@@ -49,8 +50,7 @@ if os.name == 'nt':
 # Must be a Windows thing.
 #
 url_for_moodeview = 'http://moode.local'
-url   = '192.168.10.68'
-
+url   = '192.168.1.2'
 
 #
 # the name of each Radio Button - they need to match the name of the
@@ -75,164 +75,13 @@ stations = ['http://uk3.internet-radio.com:8405/live',
 # set to False if using an alternate browser, else it will load the
 # (slow) python-based browser
 python_browser = True
+
 # the alternate browser, a separate executable
-browser_executable = "C:/apps/bin/moodeView.exe"
+if os.name == 'nt':
+    browser_executable = "C:/apps/bin/moodeView.exe"
+else:
+    browser_executable = "~/apps/bin/moodeView"
 
-# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# A Widgets that overlays rectangles, for debugging mouse press areas
-#
-class RubberBandWidget(QWidget):
-
-    def __init__(self,parent = None):
-        super().__init__(parent)
-        self.rubberBands = []
-        self.hidden = True
-
-    def addRectangle(self,rect):
-        rubberBand = QRubberBand(QRubberBand.Line, self)
-        rubberBand.setGeometry(rect)
-        self.rubberBands.append(rubberBand)
-
-    def delete(self):
-        for rubberBand in self.rubberBands:
-            rubberBand.deleteLater()
-        self.rubberBands.clear()
-        
-    def hide(self):
-        for rubberBand in self.rubberBands:
-            rubberBand.hide()
-            self.hidden = True
-
-    def show(self):
-        for rubberBand in self.rubberBands:
-            rubberBand.show()
-            self.hidden = False
-
-    def toggle(self):
-        if self.hidden:
-            self.show()
-        else:
-            self.hide()
-        
-# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# A QMainwindow with an image
-# The default scale is just the size of the image file.  It can be scaled
-# by applying a scale parameter
-#
-class BorderLessWindow(QMainWindow):
-
-    def __init__(self,image,scale = 1.0):
-        super().__init__()
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        self.setWindowFlags(Qt.FramelessWindowHint)
-        self.pressPos = None    # used to drag with the mouse
-        self.useRight = False
-        self.resize(800,600)
-
-        central_widget = RubberBandWidget(self)
-        self.setCentralWidget(central_widget)
-
-        self.imageLabel = QLabel(self)
-        self.imageLabel.setBackgroundRole(QPalette.Base)
-        self.imageLabel.setFrameShape(QFrame.NoFrame)
-        self.imageLabel.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-        self.imageLabel.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
-        self.imageLabel.scaledContents = True
-        self.layout = QVBoxLayout()
-        self.layout.addWidget(self.imageLabel)
-        central_widget.setLayout(self.layout)
-
-        self.setMouseTracking(True)
-        self.setAttribute(Qt.WidgetAttribute.WA_Hover)
-        self.installEventFilter(self)
-
-        self.ctrl = False
-        self.alt = False
-
-        self.loadImageAndScale(image,scale)
-
-    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    def loadImageAndScale(self,image,scale):
-        self.scale = scale
-        self.loadImage(image)
-
-    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # ToolTip is returned when hovering, QHoverEvent doesn't register
-    def eventFilter(self, object, event):
-        # got to be a better way
-        s = str(event)
-        if "QEvent::ToolTip" in s:
-            self.hover(event)
-        return False
-
-    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # load a single image from a file
-    def loadImage(self,fileName):
-        image = QImage(fileName)
-        if image.isNull():
-            QMessageBox.information(self,
-                                    "Image Viewer",
-                                    f"Cannot load {fileName}")
-            return
-
-        w = image.width()
-        h = image.height()
-        # call self.setAttribute(Qt.WA_TranslucentBackground) for
-        # transparent background
-        self.pixmap = QPixmap.fromImage(image)
-        sz = QSize(w, h)
-        if self.scale != 1.0:
-            sz = QSize(w * self.scale, h*self.scale)
-        self.resize(sz)
-
-        aspect = Qt.KeepAspectRatio # or Qt.IgnoreAspectRatio
-        self.pixmap = self.pixmap.scaled(sz,aspect,Qt.SmoothTransformation)
-        self.imageLabel.setPixmap(self.pixmap)
-
-    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    def hover(self,event):      # overide this
-        pass
-    def rightMouse(self):       # override this
-        pass
-    def leftMouse(self,e):      # override this
-        pass
-    
-    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # record the position of the mouse when a button is pressed
-    def mousePressEvent(self,event):
-        self.pressPos = event.position() # save initial drag position
-        if event.button() == Qt.RightButton:
-            self.rightMouse()
-        elif event.button() == Qt.LeftButton:
-            self.leftMouse(event)
-        else:
-            self.pressPos = None # middle mouse?
-
-
-    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    def mouseMoveEvent(self, event):
-        x=event.globalPosition().x()
-        y=event.globalPosition().y()
-        self.move(x-self.pressPos.x(), y-self.pressPos.y())
-        
-    # record ctrl and alt (not used yet)
-    def keyReleaseEvent(self,event):
-        self.ctrl = False
-        self.alt = False
-        
-    def keyPressEvent (self,event):
-        if event.key() == Qt.Key_Escape:
-            self.close()
-        elif event.key() == Qt.Key_T:
-            self.toggleOverlays()
-            
-        m = event.modifiers()
-        if m == Qt.ControlModifier:
-            self.ctrl = True
-        elif m == Qt.AltModifier:
-            self.alt = True
-        # print("ALT",self.alt,"CTRL",self.ctrl)
-        
         
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # An invisible QDial - rotatable, but probably easier to just use
@@ -258,11 +107,10 @@ class ClickableLabel(QLabel):
         self.mousePress.emit()
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# run with "-2", etc to load the other radio images
+# run with "-2,-3,...etc"" to load the other radio images
 def parseArgs():
     import argparse
     parser = argparse.ArgumentParser()
-    # background/showtoolbar, for compat sake
     parser.add_argument('-1',action='store_true', required = False)
     parser.add_argument('-2',action='store_true', required = False)
     parser.add_argument('-3',action='store_true', required = False)
@@ -282,7 +130,7 @@ class MyBorderLessWindow(BorderLessWindow):
         args = parseArgs()
 
         # load image and image scale
-        self.group = self.getLast()
+        self.group = self.getLast() # get the last saved radio
         if args["1"]:   self.group = 'Radio1'
         elif args["2"]: self.group = 'Radio2'
         elif args["3"]: self.group = 'Radio3'
@@ -306,7 +154,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.setWindowIcon(self.icon)
 
         # set up the rectangles for the knobs
-        self.initRectangles()     # initialize the array
+        self.initRectangles()          # initialize the array
         self.setRectangles(self.group) # load the array from ini file
             
         # the station list is not showing
@@ -829,7 +677,7 @@ if __name__ == '__main__':
     import os
                     
     import sys
-    app = QtWidgets.QApplication(sys.argv)
+    app = QApplication(sys.argv)
     win = MyBorderLessWindow()
     win.show()
     sys.exit(app.exec())
