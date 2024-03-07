@@ -1,6 +1,8 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #
+# donn, Mar 7, 2024
+#   - added radio6 image
 # donn, Mar 1, 2024
 #   - move borderLessWindow to a separate file
 # donn, Jan 26, 2024
@@ -36,6 +38,7 @@ from PySide6.QtGui import (QPixmap,QImage,QHoverEvent, QBrush,
 from roundCorners import makeCornersRound
 from stationView  import StationView
 from borderLessWindow import BorderLessWindow,RubberBandWidget
+from clickableLabel import ClickableLabel
 
 import os
 
@@ -93,19 +96,6 @@ class InvisaDial(QDial):
     def paintEvent(self,event):
         pass
     
-# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-# QLabels are not normally "clickable," so we need to add the signal
-class ClickableLabel(QLabel):
-
-    # signals must be declared before init in Python
-    mousePress = Signal()
-    
-    def __init__(self,parent = None):
-        super().__init__(parent)
-
-    def mousePressEvent(self,event):
-        self.mousePress.emit()
-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # run with "-2,-3,...etc"" to load the other radio images
 def parseArgs():
@@ -519,6 +509,10 @@ class MyBorderLessWindow(BorderLessWindow):
     def radio6(self):
         self.restart('-6')
             
+    def toggleLabelScroll(self):
+        self.label.setScroll(not self.label.scroll)
+        # self.label.setText(self.label.text)
+        
     # popup menu
     def popupMenu(self,point):
         popup = QMenu(self)
@@ -532,6 +526,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Minimize',popup,self.showMinimized)
         self.addAction('Browser',popup,self.launchBrowser)
         self.addAction('Clear Playlist',popup,self.clearList)
+        self.addAction('Toggle Scroll',popup,self.toggleLabelScroll)
         self.addAction('Toggle Overlays',popup,self.toggleOverlays)
         self.addAction('Exit',popup,self.close)
         popup.exec(point)
