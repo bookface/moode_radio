@@ -116,6 +116,7 @@ def parseArgs():
     parser.add_argument('-3',action='store_true', required = False)
     parser.add_argument('-4',action='store_true', required = False)
     parser.add_argument('-5',action='store_true', required = False)
+    parser.add_argument('-6',action='store_true', required = False)
     args = parser.parse_args()
     dict = vars(args)           # convert to dictionary
     return dict
@@ -136,6 +137,8 @@ class MyBorderLessWindow(BorderLessWindow):
         elif args["3"]: self.group = 'Radio3'
         elif args["4"]: self.group = 'Radio4'
         elif args["5"]: self.group = 'Radio5'
+        elif args["6"]: self.group = 'Radio6'
+
         # read ini file for image and scale
         self.setImageAndScale(self.group)
 
