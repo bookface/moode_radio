@@ -515,6 +515,9 @@ class MyBorderLessWindow(BorderLessWindow):
 
     def radio5(self):
         self.restart('-5')
+
+    def radio6(self):
+        self.restart('-6')
             
     # popup menu
     def popupMenu(self,point):
@@ -525,6 +528,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Radio 3',popup,self.radio3)
         self.addAction('Radio 4',popup,self.radio4)
         self.addAction('Radio 5',popup,self.radio5)
+        self.addAction('Radio 6',popup,self.radio6)
         self.addAction('Minimize',popup,self.showMinimized)
         self.addAction('Browser',popup,self.launchBrowser)
         self.addAction('Clear Playlist',popup,self.clearList)
