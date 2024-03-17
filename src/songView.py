@@ -125,7 +125,7 @@ class DirectoryTreeApp(QMainWindow):
     def clearAdd(self):
         self.cmd('clear')
         self.add()
-        # self.cmd('play 1')
+        self.cmd('play 1')
         
     def cancel(self):
         pass

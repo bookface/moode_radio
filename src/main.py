@@ -523,9 +523,12 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Radio 4',popup,self.radio4)
         self.addAction('Radio 5',popup,self.radio5)
         self.addAction('Radio 6',popup,self.radio6)
+        self.addAction('Next Song',popup,self.next)
+        self.addAction('Previous Song',popup,self.prev)
         self.addAction('Minimize',popup,self.showMinimized)
         self.addAction('Browser',popup,self.launchBrowser)
         self.addAction('Clear Playlist',popup,self.clearList)
+        self.addAction('Crop Playlist',popup,self.crop)
         self.addAction('Toggle Scroll',popup,self.toggleLabelScroll)
         self.addAction('Toggle Overlays',popup,self.toggleOverlays)
         self.addAction('Exit',popup,self.close)
@@ -546,6 +549,16 @@ class MyBorderLessWindow(BorderLessWindow):
             # is not going to match the logo images.
             # self.checkLogoImage(whatsPlaying)
 
+    def next(self):
+        self.cmd('next')
+
+    def prev(self):
+        self.cmd('prev')
+        
+    # clears playlist except for current
+    def crop(self):
+        self.cmd('crop')
+        
     # called when volume dial changed
     def volDial(self,value):
         self.vol(value)
