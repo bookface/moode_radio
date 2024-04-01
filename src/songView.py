@@ -182,7 +182,7 @@ class DirectoryTreeApp(QMainWindow):
         self.addto.clicked.connect(self.add)
         hlayout.addWidget(self.addto)
         self.clearaddto = QPushButton(self)
-        self.clearaddto.setText("CLEAR/ADD")
+        self.clearaddto.setText("CLEAR/ADD/PLAY")
         self.clearaddto.clicked.connect(self.clearAdd)
         hlayout.addWidget(self.clearaddto)
         self.layout.addWidget(self.frame2)
