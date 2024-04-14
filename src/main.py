@@ -121,7 +121,7 @@ class MyBorderLessWindow(BorderLessWindow):
         args = parseArgs()
 
         # load image and image scale
-        self.group = self.getLast() # get the last saved radio
+        self.group,x,y = self.getLast() # get the last saved radio
         if args["1"]:   self.group = 'Radio1'
         elif args["2"]: self.group = 'Radio2'
         elif args["3"]: self.group = 'Radio3'
@@ -133,6 +133,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.setImageAndScale(self.group)
 
         super().__init__(self.image,self.imageScale)
+        self.move(int(x),int(y))
 
         # load all other settings
         self.loadSettings(self.group)
@@ -196,16 +197,20 @@ class MyBorderLessWindow(BorderLessWindow):
     def getLast(self):
         group = 'Radio1'
         fname = 'moode_last.ini'
+        x = 500; y = 500
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
-            group = settings.value("last")
-        return group
+            x = settings.value("geometryX")
+            y = settings.value("geometryY")
+            group = settings.value("last_group")
+        return group,x,y
     
     def closeEvent(self,event):
         fname = 'moode_last.ini'
         settings = QSettings(fname,QSettings.IniFormat)
-        settings.setValue("geometry", self.saveGeometry())
-        settings.setValue("last", self.group)
+        settings.setValue("geometryX", self.geometry().x())
+        settings.setValue("geometryY", self.geometry().y())
+        settings.setValue("last_group", self.group)
         
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # create the knob rectangles and initialize with some default values
@@ -601,7 +606,8 @@ class MyBorderLessWindow(BorderLessWindow):
                 if name != None and self.logo != None:
                     name = f"{name}.jpg"
                     self.setLogoImage(name)
-
+                    print(f"SELECTED:{station_url} NAME:{name}")
+                    
     # set a flag indicating the list is not showing and preserve the
     # currently selected row
     def stationClosed(self,row):

@@ -185,6 +185,10 @@ class DirectoryTreeApp(QMainWindow):
         self.clearaddto.setText("CLEAR/ADD/PLAY")
         self.clearaddto.clicked.connect(self.clearAdd)
         hlayout.addWidget(self.clearaddto)
+        self.playlocal = QPushButton(self)
+        self.playlocal.setText("PLAY LOCAL")
+        self.playlocal.clicked.connect(self.player)
+        hlayout.addWidget(self.playlocal)
         self.layout.addWidget(self.frame2)
 
 
@@ -220,6 +224,25 @@ class DirectoryTreeApp(QMainWindow):
         # model.setFilter(QDir.AllDirs | QDir.NoDotAndDotDot | QDir.Drives)
         return model
 
+    # play a file here
+    def player(self):
+        if self.selectedPath == '': return
+        path = self.selectedPath
+        if os.path.isdir(path): # only files play for now
+            return
+        filename = self.fixPath(path)
+        if os.name == 'nt':
+            import subprocess
+            filename = filename.replace('easystore','X:/Music')
+            subprocess.Popen(["pythonw","player.py",filename])
+        else:                   # linux
+            import getpass
+            import subprocess
+            user = getpass.getuser()
+            filename = filename.replace('easystore',f"/media/{user}/easystore/Music")
+            #print(filename)
+            subprocess.Popen(["python3","player.py",filename])
+        
 def main():
     app = QApplication(sys.argv)
     window = DirectoryTreeApp()

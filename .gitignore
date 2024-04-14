@@ -2,3 +2,4 @@ radio-logos
 station_data.json
 moode_radio.ini
 src/moode_last.ini
+src/player.ini
