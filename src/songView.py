@@ -3,21 +3,10 @@
 # This loads a list of files on the system and requests moode
 # to play either the song or the directory.
 #
-# It is very system dependant.  The USB drive I have attached is
-# called "easystore" and it is shared with the raspberry by
-# the same name
-
-# On Windows, it is mapped to drive "X:", on Linux it will be
-# be mounted as /media/<username>/easystore.
+# Change rootDirectory() to point to your root directory, the
+# url moode, and the mounted name on the raspberry pi.
 #
-# To get this to work on any system, modify fixPath() to map
-# the local directory to the raspberry pi mounted directory.
-# Same with the constructor, where it loads the file names
-# into QFileSystemModel.
-#
-# Just search for X:/Music and make changes as needed
-#
-# TODO: Yeah, put the system dependant stuff in an ini
+# TODO: Put the system dependant stuff in an ini
 #       file.
 #
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -33,9 +22,30 @@ import os
 import subprocess
 import glob
 from pathlib import Path
+import getpass
 
 if os.name == 'nt':
     from subprocess import CREATE_NO_WINDOW
+
+# ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+# System dependances here:
+# Return the local mount music directory,the url of the moode player,
+# and the name of the directory on moode where the music is mounted
+#
+# For example, the directory on moode is smb exported as 'easystore',
+# mounted here as /media/{user}/moode or X:/Music
+#
+def rootDirectory():
+    url  = 'moode.local'
+    if os.name == 'nt':
+        root ="X:/Music"
+        url  = '192.168.1.2'    # windows can't handle moode.local
+    else:
+        user = getpass.getuser()
+        root = f"/media/{user}/moode"
+    # mounted name on moode, e.g. /media/<name>
+    mounted_name = 'easystore'
+    return root,url,mounted_name
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 class DirectoryTreeApp(QMainWindow):
@@ -43,7 +53,6 @@ class DirectoryTreeApp(QMainWindow):
     # run an mpc command
     def cmd(self,which):
         proc = f"mpc --quiet -h {self.url} {which}"
-        # print('proc',proc)
         try:
             if os.name == 'nt':
                 subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 3)
@@ -80,14 +89,8 @@ class DirectoryTreeApp(QMainWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # transform from local path to raspberry pi path
     def fixPath(self,path):
-        # this seems to change randomly
-        p = path.replace("\\", "/") # change windows annoying back slashes
-        if os.name == 'nt':
-            return p.replace("X:/Music",'easystore')
-        else:
-            import getpass
-            user = getpass.getuser()
-            return p.replace(f"/media/{user}/easystore/Music",'easystore')
+        p = path.replace("\\", "/") # replace windows annoying back slashes
+        return p.replace(self.root,self.mountName)
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # add an action to a popup menu
@@ -149,9 +152,9 @@ class DirectoryTreeApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.url   = '192.168.1.2'
+        self.root,self.url,self.mountName = rootDirectory()
 
-        self.setWindowTitle(f"Music Selector {self.url}")
+        self.setWindowTitle(f"Music Selector {self.root}")
         self.setGeometry(100, 100, 800, 1000)
 
         self.central_widget = QWidget(self)
@@ -202,12 +205,7 @@ class DirectoryTreeApp(QMainWindow):
         # Create a QFileSystemModel to represent the file system
         self.fileSystemModel = self.create_fileSystemModel()
         self.treeView.setModel(self.fileSystemModel)
-        if os.name == 'nt':
-            self.treeView.setRootIndex(self.fileSystemModel.index("X:/Music"))
-        else:
-            import getpass
-            user = getpass.getuser()
-            self.treeView.setRootIndex(self.fileSystemModel.index(f"/media/{user}/easystore/Music"))
+        self.treeView.setRootIndex(self.fileSystemModel.index(self.root))
         self.treeView.setColumnWidth(0,400)
 
         
@@ -231,16 +229,11 @@ class DirectoryTreeApp(QMainWindow):
         if os.path.isdir(path): # only files play for now
             return
         filename = self.fixPath(path)
+        filename = filename.replace(self.mountName,self.root)
         if os.name == 'nt':
             import subprocess
-            filename = filename.replace('easystore','X:/Music')
             subprocess.Popen(["pythonw","player.py",filename])
         else:                   # linux
-            import getpass
-            import subprocess
-            user = getpass.getuser()
-            filename = filename.replace('easystore',f"/media/{user}/easystore/Music")
-            #print(filename)
             subprocess.Popen(["python3","player.py",filename])
         
 def main():

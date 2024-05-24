@@ -426,10 +426,10 @@ class MyBorderLessWindow(BorderLessWindow):
         proc = f"mpc --quiet -h {url} {which}"
         try:
             if os.name == 'nt':
-                subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 3)
+                subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 3,check=True)
             else:
-                subprocess.run(proc,shell=True,timeout = 3)
-        except subprocess.TimeoutExpired:
+                subprocess.run(proc,shell=True,timeout = 3,check=True)
+        except:
             self.label.setText(f"MPC Error, check URL:{url}")
         
     #
@@ -471,6 +471,17 @@ class MyBorderLessWindow(BorderLessWindow):
             return True
         return False
     
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # load a 'pls' playlist file
+    def load(self,name):
+        self.setLogoImage('')
+        self.cmd(f"load '{name}'")
+        result = self.playlistLength()
+        if result > 0:
+            self.cmd(f"play {result}")
+            return True
+        return False
+        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # clears the playlist
     def clearList(self):
@@ -599,11 +610,23 @@ class MyBorderLessWindow(BorderLessWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # a station was selected form the station list
     def stationSelected(self):
+        #
+        # new version uses pls files obtained from moode,
+        # not the url from the json file
         station_url = self.stationView.url
-        if station_url != None:
+        if station_url == None:
+            plsname = self.stationView.name
+            name = f"RADIO/{plsname}" # see stationView, add RADIO
+            self.load(name)
+            if self.logo != None:
+                name = plsname.replace('.pls', "", 1)
+                name = f"{name}.jpg"
+                self.setLogoImage(name)
+                
+        else:
             if self.add(station_url) == True:
-                # display the station logo, if enabled
                 name = self.stationView.name
+                # display the station logo, if enabled
                 if name != None and self.logo != None:
                     name = f"{name}.jpg"
                     self.setLogoImage(name)
@@ -619,7 +642,7 @@ class MyBorderLessWindow(BorderLessWindow):
     def tuner(self,point):
         if self.stationListShowing == False:
             self.stationListShowing = True
-            self.stationView = StationView(self.currentRow,self)
+            self.stationView = StationView(self.currentRow,url,self)
             self.stationView.show()
             self.stationView.selected.connect(self.stationSelected)
             self.stationView.closed.connect(self.stationClosed)
