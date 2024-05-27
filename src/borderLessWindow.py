@@ -1,7 +1,7 @@
 from PySide6.QtCore import (Qt, QPoint, QPointF, QSize, QEvent)
 from PySide6.QtWidgets import (QMainWindow,QWidget,QFrame,
                                QLabel,QSizePolicy,QVBoxLayout,
-                               QRubberBand)
+                               QRubberBand,QMessageBox)
 from PySide6.QtGui import (QPalette,QImage,QPixmap)
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -143,10 +143,13 @@ class BorderLessWindow(QMainWindow):
         
     # record ctrl and alt (not used yet)
     def keyReleaseEvent(self,event):
+        if event.key() == Qt.Key_Escape:
+            self.close()
         self.ctrl = False
         self.alt = False
         
     def keyPressEvent (self,event):
+        # sometimes works, sometimes doesn't: see keyReleaseEvent
         if event.key() == Qt.Key_Escape:
             self.close()
         elif event.key() == Qt.Key_T:

@@ -32,19 +32,19 @@ if os.name == 'nt':
 # Return the local mount music directory,the url of the moode player,
 # and the name of the directory on moode where the music is mounted
 #
-# For example, the directory on moode is smb exported as 'easystore',
+# For example, the directory on moode is samba exported as 'music',
 # mounted here as /media/{user}/moode or X:/Music
 #
 def rootDirectory():
     url  = 'moode.local'
     if os.name == 'nt':
-        root ="X:/Music"
+        root = 'X:/Music'
         url  = '192.168.1.2'    # windows can't handle moode.local
     else:
         user = getpass.getuser()
         root = f"/media/{user}/moode"
     # mounted name on moode, e.g. /media/<name>
-    mounted_name = 'easystore'
+    mounted_name = 'music'
     return root,url,mounted_name
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
