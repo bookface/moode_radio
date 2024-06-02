@@ -74,9 +74,10 @@ stations = ['http://uk3.internet-radio.com:8405/live',
             'https://ice24.securenetsystems.net/KRFCFM?playSessionID=AA58FC61-C29C-C235-CC97982D7A692354' ]
 
 #
-# whatever browser to load - see symbol()
-# set to False if using an alternate browser, else it will load the
-# (slow) python-based browser
+# Whatever browser to load - see symbol().
+# Set to False if using an alternate browser, else it will load the
+# (slow, but works fine) python-based browser
+#
 python_browser = True
 
 # the alternate browser, a separate executable
@@ -85,7 +86,15 @@ if os.name == 'nt':
 else:
     browser_executable = "~/apps/bin/moodeView"
 
-        
+#
+# Path to radiologos - either local downloaded via backup from moode
+# or a mounted dir from /var/local/www.imagesw/radio-logos
+# on the moode player.
+#
+# Default is local, make changes in moode_radio.ini.
+
+radiologos = 'radio-logos'
+
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # An invisible QDial - rotatable, but probably easier to just use
 # the mouse scroll wheel
@@ -176,7 +185,8 @@ class MyBorderLessWindow(BorderLessWindow):
 
         # logos - enabled if ./radio-logos directory exists
         self.logo = None
-        if os.path.isdir('radio-logos'):
+        global radiologos
+        if os.path.isdir(radiologos):
             self.logo = QLabel(self)
             self.logo.setGeometry(self.logoRect)
             self.logo.setScaledContents(True)
@@ -276,9 +286,10 @@ class MyBorderLessWindow(BorderLessWindow):
         
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def setLogoImage(self,fname):
-        name  = f"radio-logos/{fname}"
+        global radiologos
+        name  = f"{radiologos}/{fname}"
         if not os.path.isfile(name):
-            name  = f"radio-logos/{fname}.jpg"
+            name  = f"{radiologos}/{fname}.jpg"
         if os.path.isfile(name):
             self.setLogo(name)
         else:
@@ -337,7 +348,10 @@ class MyBorderLessWindow(BorderLessWindow):
                 
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # load most other settings
+    # load settings from ini files.  moode_system.ini contains settings for
+    # all radios, and would generally be modified only if adding a radio
+    # image. moode_radio.ini is for settings local to this
+    #
     def loadSettings(self,group):
         # get num buttons from system file
         fname = 'moode_system.ini'
@@ -348,7 +362,7 @@ class MyBorderLessWindow(BorderLessWindow):
                 settings.beginGroup(group)
             numButtons = int(settings.value('numButtons',5))
 
-        # personal settings next
+        # load personal settings next
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
@@ -362,6 +376,10 @@ class MyBorderLessWindow(BorderLessWindow):
                 if v != None:
                     stations[i] = v
 
+            #
+            # use the built-in python browser or use an
+            # alternative
+            #
             global use_python_browser,python_browser
             global browser_executable
             s = settings.value('python_browser')
@@ -372,8 +390,14 @@ class MyBorderLessWindow(BorderLessWindow):
             if s != None:
                 browser_executable = settings.value('browser_executable')
 
+            # radio logos - local directory or smb mounted
+            global radiologos
+            s = settings.value('radiologos')
+            if s != None:
+                radiologos = s
+                
         # default is 5 buttons. Some radios can contain more then
-        # 5, so load the additional buttons 
+        # 5, so load any additional buttons 
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
             settings.beginGroup(group)
@@ -611,8 +635,10 @@ class MyBorderLessWindow(BorderLessWindow):
     # a station was selected form the station list
     def stationSelected(self):
         #
-        # new version uses pls files obtained from moode,
-        # not the url from the json file
+        # This new version uses pls files obtained from moode,
+        # not the url from the json file.
+        # If station_url is None, then we load the .pls file
+        #
         station_url = self.stationView.url
         if station_url == None:
             plsname = self.stationView.name

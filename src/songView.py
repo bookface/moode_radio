@@ -8,6 +8,7 @@
 #
 # TODO: Put the system dependant stuff in an ini
 #       file.
+#       Popup menu code doesn't do anything
 #
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 import sys
@@ -29,11 +30,12 @@ if os.name == 'nt':
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # System dependances here:
+#
 # Return the local mount music directory,the url of the moode player,
 # and the name of the directory on moode where the music is mounted
 #
 # For example, the directory on moode is samba exported as 'music',
-# mounted here as /media/{user}/moode or X:/Music
+# mounted here as /media/{user}/music or X:/Music
 #
 def rootDirectory():
     url  = 'moode.local'
@@ -42,9 +44,12 @@ def rootDirectory():
         url  = '192.168.1.2'    # windows can't handle moode.local
     else:
         user = getpass.getuser()
-        root = f"/media/{user}/moode"
-    # mounted name on moode, e.g. /media/<name>
-    mounted_name = 'music'
+        #root = f"/media/{user}/easystore/Music"
+        root = f"/media/{user}/music"
+    #
+    # mounted name on moode, e.g. /media/<name> WITHOUT /media
+    #
+    mounted_name = 'easystore'
     return root,url,mounted_name
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -90,7 +95,8 @@ class DirectoryTreeApp(QMainWindow):
     # transform from local path to raspberry pi path
     def fixPath(self,path):
         p = path.replace("\\", "/") # replace windows annoying back slashes
-        return p.replace(self.root,self.mountName)
+        p2 = p.replace(self.root,self.mountName)
+        return p2
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # add an action to a popup menu
@@ -112,6 +118,7 @@ class DirectoryTreeApp(QMainWindow):
             list = sorted(list)
             for f in list:
                 filename = self.fixPath(f)
+                print("************** ADD HERE",filename)
                 self.cmd(f"add \"{filename}\"")
         else:                   # one file
             filename = self.fixPath(path)
