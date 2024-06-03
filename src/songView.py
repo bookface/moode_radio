@@ -118,7 +118,6 @@ class DirectoryTreeApp(QMainWindow):
             list = sorted(list)
             for f in list:
                 filename = self.fixPath(f)
-                print("************** ADD HERE",filename)
                 self.cmd(f"add \"{filename}\"")
         else:                   # one file
             filename = self.fixPath(path)
