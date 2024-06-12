@@ -183,7 +183,8 @@ class MyBorderLessWindow(BorderLessWindow):
         else:
             self.label.setStyleSheet('color:white;background-color: rgba(0,0,0,0%)');
 
-        # logos - enabled if ./radio-logos directory exists
+        # logos - enabled if ./radio-logos directory exists, create a label to
+        # hold the image
         self.logo = None
         global radiologos
         if os.path.isdir(radiologos):
@@ -204,6 +205,9 @@ class MyBorderLessWindow(BorderLessWindow):
 
         # preserve the current selected row in stationView()
         self.currentRow = 0
+
+        # continue where left off
+        self.loadLastPlsFile()
         
     def getLast(self):
         group = 'Radio1'
@@ -216,6 +220,14 @@ class MyBorderLessWindow(BorderLessWindow):
             group = settings.value("last_group")
         return group,x,y
     
+    def loadLastPlsFile(self):
+        fname = 'moode_last.ini'
+        if os.path.isfile(fname):
+            settings = QSettings(fname,QSettings.IniFormat)
+            plsname= settings.value("plsfile")
+            if plsname != None:
+                self.loadPlsFile(plsname)
+        
     def closeEvent(self,event):
         fname = 'moode_last.ini'
         settings = QSettings(fname,QSettings.IniFormat)
@@ -301,7 +313,8 @@ class MyBorderLessWindow(BorderLessWindow):
         pixmap = QPixmap.fromImage(image)
         sz = QSize(image.width(),image.height())
         pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
-        self.logo.setPixmap(pixmap)
+        if self.logo != None:
+            self.logo.setPixmap(pixmap)
         
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # cmdResult() sometimes comes out as:
@@ -632,6 +645,22 @@ class MyBorderLessWindow(BorderLessWindow):
         self.cmd('toggle')
             
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # We now load pls file obtained from moode instead if using the url.
+    # Using the pls file also makes it easier to load the jpg, since the
+    # names are identical
+    def loadPlsFile(self,plsname):
+        name = f"RADIO/{plsname}" # see stationView, add RADIO
+        self.load(name)
+        if self.logo != None:
+            name = plsname.replace('.pls', "", 1)
+            name = f"{name}.jpg"
+            self.setLogoImage(name)
+        # save it
+        fname = 'moode_last.ini'
+        settings = QSettings(fname,QSettings.IniFormat)
+        settings.setValue("plsfile", plsname)
+
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # a station was selected form the station list
     def stationSelected(self):
         #
@@ -642,13 +671,7 @@ class MyBorderLessWindow(BorderLessWindow):
         station_url = self.stationView.url
         if station_url == None:
             plsname = self.stationView.name
-            name = f"RADIO/{plsname}" # see stationView, add RADIO
-            self.load(name)
-            if self.logo != None:
-                name = plsname.replace('.pls', "", 1)
-                name = f"{name}.jpg"
-                self.setLogoImage(name)
-                
+            self.loadPlsFile(plsname)
         else:
             if self.add(station_url) == True:
                 name = self.stationView.name
