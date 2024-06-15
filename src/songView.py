@@ -16,7 +16,7 @@ from PySide6.QtCore import QDir, Qt
 from PySide6.QtWidgets import (QApplication, QMainWindow,
                                QTreeView, QVBoxLayout, QHBoxLayout,QWidget,
                                QAbstractItemView, QMenu,QPushButton,
-                               QFileSystemModel, QFrame)
+                               QFileSystemModel, QFrame, QSlider)
 from PySide6.QtGui import (QCursor,QAction)
 
 import os
@@ -43,11 +43,12 @@ def rootDirectory():
         root = 'X:/Music'
         url  = '192.168.1.2'    # windows can't handle moode.local
     else:
+        # mount the directory containing files as /media/<user>/music
         user = getpass.getuser()
-        #root = f"/media/{user}/easystore/Music"
         root = f"/media/{user}/music"
     #
-    # mounted name on moode, e.g. /media/<name> WITHOUT /media
+    # The mounted name of music files on the raspberry pi,
+    # e.g. /media/<name> WITHOUT /media
     #
     mounted_name = 'easystore'
     return root,url,mounted_name
@@ -68,11 +69,6 @@ class DirectoryTreeApp(QMainWindow):
         
     #
     # run an mpc command and get something back
-    # not used right now
-    # could be used to play the last item in the play list
-    #   result = self.cmdResult('playlist')
-    #   last = len(result) + 1
-    #   self.cmd(f"play {last}")
     #
     def cmdResult(self,which):
         import signal
@@ -200,6 +196,14 @@ class DirectoryTreeApp(QMainWindow):
         hlayout.addWidget(self.playlocal)
         self.layout.addWidget(self.frame2)
 
+        # volume slider
+        self.frame3 = QFrame(self)
+        hlayout = QHBoxLayout(self.frame3)
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMaximum(100)
+        self.slider.valueChanged.connect(self.volume)
+        hlayout.addWidget(self.slider)
+        self.layout.addWidget(self.frame3)
 
         self.selectedPath = ''
         self.treeView = QTreeView(self)
@@ -214,7 +218,26 @@ class DirectoryTreeApp(QMainWindow):
         self.treeView.setRootIndex(self.fileSystemModel.index(self.root))
         self.treeView.setColumnWidth(0,400)
 
+        self.getVolume()
+
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    def getVolume(self):
+        result = self.cmdResult('')
+        if len(result) == 0:
+            return
+        out = str(result[len(result)-1])
+        if 'ERROR' in out:
+            return
+        out = out[2:]           # remove b", whatever that is
+        tokens = out.split()
+        out = tokens[1]         # should be volume number
+        out = out[:-1]          # remove the %
+        self.slider.setValue(int(out))
+
+    def volume(self):
+        self.cmd(f'vol {self.slider.value()}')
         
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def display_selectedPath(self, index):
         self.selectedPath = self.fileSystemModel.filePath(index)
         return

@@ -628,7 +628,16 @@ class MyBorderLessWindow(BorderLessWindow):
     def pause(self):
         self.cmd('pause')
 
+    #
+    # The "play" command will only start playing what was
+    # buffered, then it will stop.  The pls file needs to
+    # be re-loaded to continue playing without stopping.
+    #
+    # Play/pause only works as expected if playing a music
+    # file (see songView.py)
+    #
     def play(self):
+        self.loadLastPlsFile()
         self.cmd('play')
             
     def volumeUp(self):
@@ -659,7 +668,7 @@ class MyBorderLessWindow(BorderLessWindow):
         fname = 'moode_last.ini'
         settings = QSettings(fname,QSettings.IniFormat)
         settings.setValue("plsfile", plsname)
-
+        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # a station was selected form the station list
     def stationSelected(self):

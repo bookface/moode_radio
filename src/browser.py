@@ -61,7 +61,7 @@ if __name__ == '__main__':
     import sys
     sys.dont_write_bytecode = True
     app = QApplication(sys.argv)
-    url = 'http://192.168.10.67'
+    url = 'http://192.168.1.2'
     if len(sys.argv) > 1:
         url = sys.argv[1]
     mainWin = MainWindow(url)
