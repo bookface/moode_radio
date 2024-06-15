@@ -102,7 +102,7 @@ class InvisaDial(QDial):
         super().__init__(parent)
     def paintEvent(self,event):
         pass
-    
+
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # run with "-2,-3,...etc"" to load the other radio images
 def parseArgs():
@@ -115,16 +115,16 @@ def parseArgs():
     parser.add_argument('-5',action='store_true', required = False)
     parser.add_argument('-6',action='store_true', required = False)
     args = parser.parse_args()
-    dict = vars(args)           # convert to dictionary
-    return dict
+    dictionary = vars(args)     # convert to dictionary
+    return dictionary
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # Main Window
 # You can specify a scale to apply to the background image. The
 # rectangles will get re-sized by this scale
 class MyBorderLessWindow(BorderLessWindow):
-    def __init__(self):
 
+    def __init__(self):
         args = parseArgs()
 
         # load image and image scale
@@ -140,7 +140,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.setImageAndScale(self.group)
 
         super().__init__(self.image,self.imageScale)
-        if x != None:
+        if x is not None:
             self.move(int(x),int(y))
 
         # load all other settings
@@ -158,17 +158,17 @@ class MyBorderLessWindow(BorderLessWindow):
         # set up the rectangles for the knobs
         self.initRectangles()          # initialize the array
         self.setRectangles(self.group) # load the array from ini file
-            
+
         # the station list is not showing
         self.stationListShowing = False
-        
+
         # create the volume dial
         self.volumeDial = InvisaDial(self)
         self.volumeDial.setGeometry(self.volumeRect)
         self.volumeDial.move(self.volumeRect.x(),self.volumeRect.y())
         self.volumeDial.setPageStep(1)
         self.volumeDial.valueChanged.connect(self.volDial)
-        
+
         # label to display text at top of radio, e.g. what's
         # playing. Clicking it will update the value.
         self.label = ClickableLabel(self)
@@ -176,10 +176,10 @@ class MyBorderLessWindow(BorderLessWindow):
         self.label.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
         self.label.mousePress.connect(self.currentPlaying)
         makeCornersRound(self.label)
-        if self.label_style != None:
+        if self.label_style is not None:
             self.label.setStyleSheet(self.label_style)
         else:
-            self.label.setStyleSheet('color:white;background-color: rgba(0,0,0,0%)');
+            self.label.setStyleSheet('color:white;background-color: rgba(0,0,0,0%)')
 
         # logos - enabled if ./radio-logos directory exists, create a label to
         # hold the image
@@ -190,7 +190,7 @@ class MyBorderLessWindow(BorderLessWindow):
             self.logo.setGeometry(self.logoRect)
             self.logo.setScaledContents(True)
             self.setLogoImage('')
-            
+
         # display currently playing
         self.currentPlaying()
 
@@ -206,7 +206,7 @@ class MyBorderLessWindow(BorderLessWindow):
 
         # continue where left off
         self.loadLastPlsFile()
-        
+
     def getLast(self):
         group = 'Radio1'
         fname = 'moode_last.ini'
@@ -217,7 +217,7 @@ class MyBorderLessWindow(BorderLessWindow):
             y = settings.value("geometryY")
             group = settings.value("last_group")
         return group,x,y
-    
+
     def loadLastPlsFile(self):
         fname = 'moode_last.ini'
         if os.path.isfile(fname):
@@ -225,14 +225,14 @@ class MyBorderLessWindow(BorderLessWindow):
             plsname= settings.value("plsfile")
             if plsname != None:
                 self.loadPlsFile(plsname)
-        
+
     def closeEvent(self,event):
         fname = 'moode_last.ini'
         settings = QSettings(fname,QSettings.IniFormat)
         settings.setValue("geometryX", self.geometry().x())
         settings.setValue("geometryY", self.geometry().y())
         settings.setValue("last_group", self.group)
-        
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # create the knob rectangles and initialize with some default values
     def initRectangles(self):
@@ -266,7 +266,7 @@ class MyBorderLessWindow(BorderLessWindow):
 
         # load the rectangles from the ini file
         self.loadRectanglesFromIni(group)
-        
+
         # scale the rectangles if modifying the background's
         # image scale
         if self.imageScale != 1.0:
@@ -293,7 +293,7 @@ class MyBorderLessWindow(BorderLessWindow):
         rubberBandWidget.addRectangle(self.songRect)
         rubberBandWidget.addRectangle(self.tunerRect)
         rubberBandWidget.addRectangle(self.logoRect)
-        
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def setLogoImage(self,fname):
         global RADIOLOGOS
@@ -313,7 +313,7 @@ class MyBorderLessWindow(BorderLessWindow):
         pixmap = pixmap.scaled(sz,Qt.KeepAspectRatio,Qt.SmoothTransformation)
         if self.logo != None:
             self.logo.setPixmap(pixmap)
-        
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # cmdResult() sometimes comes out as:
     #  :b'volume: 21%   repeat: off   random: off   single: off   consume: off'
@@ -348,15 +348,14 @@ class MyBorderLessWindow(BorderLessWindow):
             if group != None:
                 settings.beginGroup(group)
             r = settings.value("image")
-            if r != None:
+            if r is not None:
                 self.image = r
             r = settings.value("scale")
-            if r != None:
+            if r is not None:
                 self.imageScale = float(r)
             r = settings.value("label_style")
-            if r != None:
+            if r is not None:
                 self.label_style = r
-                
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load settings from ini files.  moode_system.ini contains settings for
@@ -393,7 +392,7 @@ class MyBorderLessWindow(BorderLessWindow):
             s = settings.value('python_browser')
             if s != None:
                 use_python_browser = s
-                PYTHON_BROWSER = (int(use_python_browser) == 1)
+                PYTHON_BROWSER = int(use_python_browser) == 1
             s = settings.value('browser_executable')
             if s != None:
                 BROWSER_EXECUTABLE = settings.value('browser_executable')
@@ -403,9 +402,9 @@ class MyBorderLessWindow(BorderLessWindow):
             s = settings.value('radiologos')
             if s != None:
                 RADIOLOGOS = s
-                
+
         # default is 5 buttons. Some radios can contain more then
-        # 5, so load any additional buttons 
+        # 5, so load any additional buttons
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
             settings.beginGroup(group)
@@ -459,7 +458,7 @@ class MyBorderLessWindow(BorderLessWindow):
                 subprocess.run(proc,shell=True,timeout = 3,check=True)
         except:
             self.label.setText(f"MPC Error, check URL:{url}")
-        
+
     #
     # run an mpc command, and return the result strings.
     # Sometimes we only get a single string back, sometimes an
@@ -498,18 +497,18 @@ class MyBorderLessWindow(BorderLessWindow):
             self.cmd(f"play {result}")
             return True
         return False
-        
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # clears the playlist
     def clearList(self):
-        self.cmd('clear');
-        
+        self.cmd('clear')
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # just for debugging, show the locations of knobs, etc.
     def toggleOverlays(self):
         rubberBandWidget = self.centralWidget()
         rubberBandWidget.toggle()
-            
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # add an action to a popup menu
     def addAction(self,name,popup,callback):
@@ -524,7 +523,7 @@ class MyBorderLessWindow(BorderLessWindow):
             os.execv(sys.executable, [f"pythonw main.py {arg}"])
         else:                   # linux
             os.execl(sys.executable, 'python3', __file__, arg)
-        
+
     def radio1(self):
         self.restart('-1')
 
@@ -542,11 +541,11 @@ class MyBorderLessWindow(BorderLessWindow):
 
     def radio6(self):
         self.restart('-6')
-            
+
     def toggleLabelScroll(self):
         self.label.setScroll(not self.label.scroll)
         # self.label.setText(self.label.text)
-        
+
     # popup menu
     def popupMenu(self,point):
         popup = QMenu(self)
@@ -567,7 +566,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Toggle Overlays',popup,self.toggleOverlays)
         self.addAction('Exit',popup,self.close)
         popup.exec(point)
-        
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # display the currently playing song
     def currentPlaying(self):
@@ -588,18 +587,18 @@ class MyBorderLessWindow(BorderLessWindow):
 
     def prev(self):
         self.cmd('prev')
-        
+
     # clears playlist except for current
     def crop(self):
         self.cmd('crop')
-        
+
     # called when volume dial changed
     def volDial(self,value):
         self.vol(value)
         # str = f"Volume {value}"
         # self.toolTip.showText(event.globalPos(),str,msecShowTime = 3000)
         self.label.setText(f"Volume {value}")
-        
+
     # one of the radio buttons was pressed
     def radioButton(self,i):
         plsname = BUTTONS[i] + ".pls"
@@ -619,20 +618,20 @@ class MyBorderLessWindow(BorderLessWindow):
     def play(self):
         self.loadLastPlsFile()
         self.cmd('play')
-            
+
     def volumeUp(self):
-        self.cmd (f'vol +1')
+        self.cmd ('vol +1')
 
     def volumeDown(self):
-        self.cmd(f'vol -1')
-            
+        self.cmd('vol -1')
+
     def vol(self,value):
         self.cmd(f'vol {value}')
 
     # the tuning knob toggles play/pause
     def tuningKnob(self):
         self.cmd('toggle')
-            
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # We now load pls file obtained from moode instead if using the url.
     # Using the pls file also makes it easier to load the jpg, since the
@@ -648,7 +647,7 @@ class MyBorderLessWindow(BorderLessWindow):
         fname = 'moode_last.ini'
         settings = QSettings(fname,QSettings.IniFormat)
         settings.setValue("plsfile", plsname)
-        
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # a station was selected form the station list
     #
@@ -658,22 +657,22 @@ class MyBorderLessWindow(BorderLessWindow):
     def stationSelected(self):
         plsname = self.stationView.name # get name from stationView.py
         self.loadPlsFile(plsname)
-                    
+
     # set a flag indicating the list is not showing and preserve the
     # currently selected row
     def stationClosed(self,row):
         self.currentRow = row
         self.stationListShowing = False
-        
+
     # display the station list
-    def tuner(self,point):
+    def tuner(self):
         if self.stationListShowing == False:
             self.stationListShowing = True
             self.stationView = StationView(self.currentRow,url,self)
             self.stationView.show()
             self.stationView.selected.connect(self.stationSelected)
             self.stationView.closed.connect(self.stationClosed)
-            
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # start a browser
     def symbol(self):
@@ -699,7 +698,7 @@ class MyBorderLessWindow(BorderLessWindow):
                 subprocess.Popen(proc,shell=True,cwd=cwd)
         else:                   # use alternative browser
             subprocess.Popen(BROWSER_EXECUTABLE)
-            
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # display tooltips
     def hover(self,event):
@@ -716,7 +715,7 @@ class MyBorderLessWindow(BorderLessWindow):
                     if i < len(BUTTONS):
                         self.toolTip.showText(event.globalPos(),BUTTONS[i],msecShowTime = 2000)
                     return
-                
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # left mouse pressed
     def leftMouse(self,e):
@@ -724,7 +723,7 @@ class MyBorderLessWindow(BorderLessWindow):
         pos = e.position()
         x = pos.x(); y = pos.y()
         point = QPoint(x,y)
-            
+
         # if none of these happen, then drag with the mouse
         save = self.pressPos
         self.pressPos = None
@@ -733,7 +732,7 @@ class MyBorderLessWindow(BorderLessWindow):
         elif self.symbolRect.contains(point):
             self.symbol()
         elif self.tunerRect.contains(point):
-            self.tuner(point)
+            self.tuner()
         else:
             for i in range(len(self.buttonRects)):
                 if self.buttonRects[i].contains(point):
@@ -747,7 +746,7 @@ if __name__ == '__main__':
     import sys
     sys.dont_write_bytecode = True
     import os
-                    
+
     import sys
     app = QApplication(sys.argv)
     win = MyBorderLessWindow()
