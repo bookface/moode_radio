@@ -1,6 +1,12 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #
+# donn, Jun 15, 2024
+#   - Moved completely from stations[] containing the urls to pls files
+#     downloaded from moode.  This eliminats the stations[] array.
+#     The array BUTTONS[] can be used to load both pls files and images.
+#     The pls files list is downloaded from the player. The radio-images
+#     can be mounted from moode or stored locally.
 # donn, Mar 7, 2024
 #   - added radio6 image
 # donn, Mar 1, 2024
@@ -24,6 +30,12 @@
 # logoRect       = station image if radio-logos exist
 #
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+import os
+
+# Looks like subprocess is not very portable
+import subprocess
+if os.name == 'nt':
+    from subprocess import CREATE_NO_WINDOW
 
 from PySide6.QtCore import (Qt, QPoint, QPointF, QSize, QEvent,
                             QRect, QTimer, Signal, QSettings)
@@ -40,51 +52,37 @@ from stationView  import StationView
 from borderLessWindow import BorderLessWindow,RubberBandWidget
 from clickableLabel import ClickableLabel
 
-import os
-
-# Looks like subprocess is not very portable
-import subprocess
-if os.name == 'nt':
-    from subprocess import CREATE_NO_WINDOW
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # These are default settings - use moode_radio.ini to set values
 # Commands require the ip number, the browser requires the "local" name.
 # Must be a Windows thing.
 #
-url_for_moodeview = 'http://moode.local'
+URL_FOR_MOODEVIEW = 'http://moode.local'
 url   = '192.168.1.2'
 
 #
 # the name of each Radio Button - they need to match the name of the
-# image file if logos are enabled
+# the pls file and the image file if logos are enabled
 #
-buttons = ["Majestic Jukebox",
+BUTTONS = ["Majestic Jukebox",
            "FluxFM - Jazzradio Schwarzenstein",
            "FluxFM - 80s",
            "Radio Paradise - Mellow",
            "KRFC"]
-#
-# the url to load for each Radio Button
-#
-stations = ['http://uk3.internet-radio.com:8405/live',
-            'https://fluxmusic.api.radiosphere.io/channels/jazz-schwarzenstein/stream.aac?quality=4',
-            'https://fluxmusic.api.radiosphere.io/channels/80s/stream.aac?quality=4',
-            'https://stream.radioparadise.com/mellow-320',
-            'https://ice24.securenetsystems.net/KRFCFM?playSessionID=AA58FC61-C29C-C235-CC97982D7A692354' ]
 
 #
 # Whatever browser to load - see symbol().
 # Set to False if using an alternate browser, else it will load the
 # (slow, but works fine) python-based browser
 #
-python_browser = True
+PYTHON_BROWSER = True
 
 # the alternate browser, a separate executable
 if os.name == 'nt':
-    browser_executable = "C:/apps/bin/moodeView.exe"
+    BROWSER_EXECUTABLE = "C:/apps/bin/moodeView.exe"
 else:
-    browser_executable = "~/apps/bin/moodeView"
+    BROWSER_EXECUTABLE = "~/apps/bin/moodeView"
 
 #
 # Path to radiologos - either local downloaded via backup from moode
@@ -93,7 +91,7 @@ else:
 #
 # Default is local, make changes in moode_radio.ini.
 
-radiologos = 'radio-logos'
+RADIOLOGOS = 'radio-logos'
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # An invisible QDial - rotatable, but probably easier to just use
@@ -186,8 +184,8 @@ class MyBorderLessWindow(BorderLessWindow):
         # logos - enabled if ./radio-logos directory exists, create a label to
         # hold the image
         self.logo = None
-        global radiologos
-        if os.path.isdir(radiologos):
+        global RADIOLOGOS
+        if os.path.isdir(RADIOLOGOS):
             self.logo = QLabel(self)
             self.logo.setGeometry(self.logoRect)
             self.logo.setScaledContents(True)
@@ -298,10 +296,10 @@ class MyBorderLessWindow(BorderLessWindow):
         
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def setLogoImage(self,fname):
-        global radiologos
-        name  = f"{radiologos}/{fname}"
+        global RADIOLOGOS
+        name  = f"{RADIOLOGOS}/{fname}"
         if not os.path.isfile(name):
-            name  = f"{radiologos}/{fname}.jpg"
+            name  = f"{RADIOLOGOS}/{fname}.jpg"
         if os.path.isfile(name):
             self.setLogo(name)
         else:
@@ -379,35 +377,32 @@ class MyBorderLessWindow(BorderLessWindow):
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
-            global url,stations,buttons
+            global url, BUTTONS
             url = settings.value('url')
             for i in range(5):  # 5 buttons default
                 v = settings.value(f"button{i}")
                 if v != None:
-                    buttons[i] = v
-                v = settings.value(f"station{i}")
-                if v != None:
-                    stations[i] = v
+                    BUTTONS[i] = v
 
             #
             # use the built-in python browser or use an
             # alternative
             #
-            global use_python_browser,python_browser
-            global browser_executable
+            global PYTHON_BROWSER, BROWSER_EXECUTABLE
+            use_python_browser = 1
             s = settings.value('python_browser')
             if s != None:
                 use_python_browser = s
-                python_browser = (int(use_python_browser) == 1)
+                PYTHON_BROWSER = (int(use_python_browser) == 1)
             s = settings.value('browser_executable')
             if s != None:
-                browser_executable = settings.value('browser_executable')
+                BROWSER_EXECUTABLE = settings.value('browser_executable')
 
             # radio logos - local directory or smb mounted
-            global radiologos
+            global RADIOLOGOS
             s = settings.value('radiologos')
             if s != None:
-                radiologos = s
+                RADIOLOGOS = s
                 
         # default is 5 buttons. Some radios can contain more then
         # 5, so load any additional buttons 
@@ -417,10 +412,7 @@ class MyBorderLessWindow(BorderLessWindow):
             for i in range(numButtons):
                 v = settings.value(f"button{i}")
                 if v != None:
-                    buttons.append(v)
-                v = settings.value(f"station{i}")
-                if v != None:
-                    stations.append(v)
+                    BUTTONS.append(v)
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load the rectanges defining the clickable buttons
@@ -454,8 +446,7 @@ class MyBorderLessWindow(BorderLessWindow):
 
             r = settings.value('station5')
             if r != None:
-                buttons.append(settings.value('button5'))
-                stations.append(settings.value("station5"))
+                BUTTONS.append(settings.value('button5'))
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # run an mpc command
@@ -497,17 +488,6 @@ class MyBorderLessWindow(BorderLessWindow):
         result = self.cmdResult('playlist')
         return len(result)
 
-    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # add a url to the bottom of the playlist and play it
-    def add(self,url):
-        self.setLogoImage('')
-        self.cmd(f'add {url}')
-        result = self.playlistLength()
-        if result > 0:
-            self.cmd(f"play {result}")
-            return True
-        return False
-    
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load a 'pls' playlist file
     def load(self,name):
@@ -622,8 +602,8 @@ class MyBorderLessWindow(BorderLessWindow):
         
     # one of the radio buttons was pressed
     def radioButton(self,i):
-        if self.add(stations[i]) == True:
-            self.setLogoImage(buttons[i])
+        plsname = BUTTONS[i] + ".pls"
+        self.loadPlsFile(plsname)
 
     def pause(self):
         self.cmd('pause')
@@ -671,24 +651,13 @@ class MyBorderLessWindow(BorderLessWindow):
         
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # a station was selected form the station list
+    #
+    # This new version uses pls files obtained from moode,
+    # not the url from the json file.
+    #
     def stationSelected(self):
-        #
-        # This new version uses pls files obtained from moode,
-        # not the url from the json file.
-        # If station_url is None, then we load the .pls file
-        #
-        station_url = self.stationView.url
-        if station_url == None:
-            plsname = self.stationView.name
-            self.loadPlsFile(plsname)
-        else:
-            if self.add(station_url) == True:
-                name = self.stationView.name
-                # display the station logo, if enabled
-                if name != None and self.logo != None:
-                    name = f"{name}.jpg"
-                    self.setLogoImage(name)
-                    #print(f"SELECTED:{station_url} NAME:{name}")
+        plsname = self.stationView.name # get name from stationView.py
+        self.loadPlsFile(plsname)
                     
     # set a flag indicating the list is not showing and preserve the
     # currently selected row
@@ -713,23 +682,23 @@ class MyBorderLessWindow(BorderLessWindow):
         self.popupMenu(point)
 
     def launchBrowser(self):
-        global url_for_moodeview,python_browser
-        proc = browser_executable
+        global URL_FOR_MOODEVIEW, PYTHON_BROWSER, BROWSER_EXECUTABLE
+        proc = BROWSER_EXECUTABLE
         cwd = os.getcwd()
 
         # subprocess requires shell=True on linux for some
         # stupid reason. Otherwise it can't find the python
         # executable.
 
-        if python_browser:      # use python browser
+        if PYTHON_BROWSER:      # use python browser
             if os.name == 'nt':
-                proc = f"pythonw ./browser.py {url_for_moodeview}"
+                proc = f"pythonw ./browser.py {URL_FOR_MOODEVIEW}"
                 subprocess.Popen(proc)
             else:
-                proc = f"python3 browser.py {url_for_moodeview}"
+                proc = f"python3 browser.py {URL_FOR_MOODEVIEW}"
                 subprocess.Popen(proc,shell=True,cwd=cwd)
         else:                   # use alternative browser
-            subprocess.Popen(browser_executable)
+            subprocess.Popen(BROWSER_EXECUTABLE)
             
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # display tooltips
@@ -744,8 +713,8 @@ class MyBorderLessWindow(BorderLessWindow):
         else:
             for i in range(len(self.buttonRects)):
                 if self.buttonRects[i].contains(event.pos()):
-                    if i < len(buttons):
-                        self.toolTip.showText(event.globalPos(),buttons[i],msecShowTime = 2000)
+                    if i < len(BUTTONS):
+                        self.toolTip.showText(event.globalPos(),BUTTONS[i],msecShowTime = 2000)
                     return
                 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
