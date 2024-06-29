@@ -139,7 +139,8 @@ class BorderLessWindow(QMainWindow):
     def mouseMoveEvent(self, event):
         x=event.globalPosition().x()
         y=event.globalPosition().y()
-        self.move(x-self.pressPos.x(), y-self.pressPos.y())
+        if self.pressPos != None:
+            self.move(x-self.pressPos.x(), y-self.pressPos.y())
         
     # record ctrl and alt (not used yet)
     def keyReleaseEvent(self,event):

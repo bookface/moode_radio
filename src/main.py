@@ -1,12 +1,16 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #
+# donn, Jun 29, 2024
+#   - PLAYLAST added as a global variable and an option specified in
+#     the moode_radio.ini file
 # donn, Jun 15, 2024
 #   - Moved completely from stations[] containing the urls to pls files
 #     downloaded from moode.  This eliminats the stations[] array.
-#     The array BUTTONS[] can be used to load both pls files and images.
-#     The pls files list is downloaded from the player. The radio-images
-#     can be mounted from moode or stored locally.
+#     The pls file list is downloaded from the player. The radio-images
+#     can be mounted from moode or stored locally.  The location
+#     set via moode_radio.ini
+#     The array BUTTONS[] is now used to load both pls files and images.
 # donn, Mar 7, 2024
 #   - added radio6 image
 # donn, Mar 1, 2024
@@ -32,7 +36,8 @@
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 import os
 
-# Looks like subprocess is not very portable
+# Looks like subprocess is not very portable. Windows requires the
+# CREATE_NO_WINDOW parameter
 import subprocess
 if os.name == 'nt':
     from subprocess import CREATE_NO_WINDOW
@@ -90,8 +95,14 @@ else:
 # on the moode player.
 #
 # Default is local, make changes in moode_radio.ini.
-
+# see loadSettings()
+#
 RADIOLOGOS = 'radio-logos'
+
+#
+# Do you want the last station selected to start playing when
+# the program starts up? 
+PLAYLAST = 1
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # An invisible QDial - rotatable, but probably easier to just use
@@ -205,7 +216,8 @@ class MyBorderLessWindow(BorderLessWindow):
         self.currentRow = 0
 
         # continue where left off
-        self.loadLastPlsFile()
+        if PLAYLAST:
+            self.loadLastPlsFile()
 
     def getLast(self):
         group = 'Radio1'
@@ -360,7 +372,7 @@ class MyBorderLessWindow(BorderLessWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load settings from ini files.  moode_system.ini contains settings for
     # all radios, and would generally be modified only if adding a radio
-    # image. moode_radio.ini is for settings local to this
+    # image. moode_radio.ini is for user settings
     #
     def loadSettings(self,group):
         # get num buttons from system file
@@ -372,7 +384,7 @@ class MyBorderLessWindow(BorderLessWindow):
                 settings.beginGroup(group)
             numButtons = int(settings.value('numButtons',5))
 
-        # load personal settings next
+        # load general/personal settings next
         fname = 'moode_radio.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
@@ -387,7 +399,7 @@ class MyBorderLessWindow(BorderLessWindow):
             # use the built-in python browser or use an
             # alternative
             #
-            global PYTHON_BROWSER, BROWSER_EXECUTABLE
+            global PYTHON_BROWSER, BROWSER_EXECUTABLE,PLAYLAST
             use_python_browser = 1
             s = settings.value('python_browser')
             if s != None:
@@ -397,6 +409,10 @@ class MyBorderLessWindow(BorderLessWindow):
             if s != None:
                 BROWSER_EXECUTABLE = settings.value('browser_executable')
 
+            s = settings.value('playlast')
+            if s != None:
+                PLAYLAST = int(s) == 1
+
             # radio logos - local directory or smb mounted
             global RADIOLOGOS
             s = settings.value('radiologos')
@@ -405,8 +421,6 @@ class MyBorderLessWindow(BorderLessWindow):
 
         # default is 5 buttons. Some radios can contain more then
         # 5, so load any additional buttons
-        if os.path.isfile(fname):
-            settings = QSettings(fname,QSettings.IniFormat)
             settings.beginGroup(group)
             for i in range(numButtons):
                 v = settings.value(f"button{i}")
@@ -633,9 +647,9 @@ class MyBorderLessWindow(BorderLessWindow):
         self.cmd('toggle')
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # We now load pls file obtained from moode instead if using the url.
-    # Using the pls file also makes it easier to load the jpg, since the
-    # names are identical
+    # In this update, we now load the pls file obtained from moode instead
+    # if using the url. Using the pls file also makes it easier to load
+    # the jpg, since the names are identical
     def loadPlsFile(self,plsname):
         name = f"RADIO/{plsname}" # see stationView, add RADIO
         self.load(name)
