@@ -114,6 +114,9 @@ def parseArgs():
     parser.add_argument('-4',action='store_true', required = False)
     parser.add_argument('-5',action='store_true', required = False)
     parser.add_argument('-6',action='store_true', required = False)
+    # start playing from the last radio station, to disable this
+    # pass '-l'
+    parser.add_argument('-l',action='store_true', required = False)
     args = parser.parse_args()
     dictionary = vars(args)     # convert to dictionary
     return dictionary
@@ -129,13 +132,15 @@ class MyBorderLessWindow(BorderLessWindow):
 
         # load image and image scale
         self.group,x,y = self.getLast() # get the last saved radio
+        playLast = True
         if args["1"]:   self.group = 'Radio1'
         elif args["2"]: self.group = 'Radio2'
         elif args["3"]: self.group = 'Radio3'
         elif args["4"]: self.group = 'Radio4'
         elif args["5"]: self.group = 'Radio5'
         elif args["6"]: self.group = 'Radio6'
-
+        if args['l']: playLast = False
+            
         # read ini file for image and scale
         self.setImageAndScale(self.group)
 
@@ -205,8 +210,10 @@ class MyBorderLessWindow(BorderLessWindow):
         self.currentRow = 0
 
         # continue where left off
-        self.loadLastPlsFile()
+        if playLast:
+            self.loadLastPlsFile()
 
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def getLast(self):
         group = 'Radio1'
         fname = 'moode_last.ini'
@@ -218,6 +225,7 @@ class MyBorderLessWindow(BorderLessWindow):
             group = settings.value("last_group")
         return group,x,y
 
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def loadLastPlsFile(self):
         fname = 'moode_last.ini'
         if os.path.isfile(fname):
@@ -226,6 +234,7 @@ class MyBorderLessWindow(BorderLessWindow):
             if plsname != None:
                 self.loadPlsFile(plsname)
 
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def closeEvent(self,event):
         fname = 'moode_last.ini'
         settings = QSettings(fname,QSettings.IniFormat)
@@ -520,9 +529,9 @@ class MyBorderLessWindow(BorderLessWindow):
     # restart the program
     def restart(self,arg):
         if os.name == 'nt':
-            os.execv(sys.executable, [f"pythonw main.py {arg}"])
+            os.execv(sys.executable, [f"pythonw main.py {arg} -l"])
         else:                   # linux
-            os.execl(sys.executable, 'python3', __file__, arg)
+            os.execl(sys.executable, 'python3', __file__, arg, '-l')
 
     def radio1(self):
         self.restart('-1')
