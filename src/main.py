@@ -114,6 +114,7 @@ def parseArgs():
     parser.add_argument('-4',action='store_true', required = False)
     parser.add_argument('-5',action='store_true', required = False)
     parser.add_argument('-6',action='store_true', required = False)
+    parser.add_argument('-7',action='store_true', required = False)
     # start playing from the last radio station, to disable this
     # pass '-l'
     parser.add_argument('-l',action='store_true', required = False)
@@ -133,17 +134,19 @@ class MyBorderLessWindow(BorderLessWindow):
         # load image and image scale
         self.group,x,y = self.getLast() # get the last saved radio
         playLast = True
-        if args["1"]:   self.group = 'Radio1'
-        elif args["2"]: self.group = 'Radio2'
-        elif args["3"]: self.group = 'Radio3'
-        elif args["4"]: self.group = 'Radio4'
-        elif args["5"]: self.group = 'Radio5'
-        elif args["6"]: self.group = 'Radio6'
+        if args['1']:   self.group = 'Radio1'
+        elif args['2']: self.group = 'Radio2'
+        elif args['3']: self.group = 'Radio3'
+        elif args['4']: self.group = 'Radio4'
+        elif args['5']: self.group = 'Radio5'
+        elif args['6']: self.group = 'Radio6'
+        elif args['7']: self.group = 'Radio7'
         if args['l']: playLast = False
             
         # read ini file for image and scale
         self.setImageAndScale(self.group)
 
+        print("IMAGE",self.image)
         super().__init__(self.image,self.imageScale)
         if x is not None:
             self.move(int(x),int(y))
@@ -220,9 +223,9 @@ class MyBorderLessWindow(BorderLessWindow):
         x = 500; y = 500
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
-            x = settings.value("geometryX")
-            y = settings.value("geometryY")
-            group = settings.value("last_group")
+            x = settings.value('geometryX')
+            y = settings.value('geometryY')
+            group = settings.value('last_group')
         return group,x,y
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -230,7 +233,7 @@ class MyBorderLessWindow(BorderLessWindow):
         fname = 'moode_last.ini'
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
-            plsname= settings.value("plsfile")
+            plsname= settings.value('plsfile')
             if plsname != None:
                 self.loadPlsFile(plsname)
 
@@ -238,9 +241,9 @@ class MyBorderLessWindow(BorderLessWindow):
     def closeEvent(self,event):
         fname = 'moode_last.ini'
         settings = QSettings(fname,QSettings.IniFormat)
-        settings.setValue("geometryX", self.geometry().x())
-        settings.setValue("geometryY", self.geometry().y())
-        settings.setValue("last_group", self.group)
+        settings.setValue('geometryX', self.geometry().x())
+        settings.setValue('geometryY', self.geometry().y())
+        settings.setValue('last_group', self.group)
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # create the knob rectangles and initialize with some default values
@@ -550,6 +553,9 @@ class MyBorderLessWindow(BorderLessWindow):
 
     def radio6(self):
         self.restart('-6')
+
+    def radio7(self):
+        self.restart('-7')
 
     def toggleLabelScroll(self):
         self.label.setScroll(not self.label.scroll)
