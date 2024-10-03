@@ -571,6 +571,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Radio 4',popup,self.radio4)
         self.addAction('Radio 5',popup,self.radio5)
         self.addAction('Radio 6',popup,self.radio6)
+        self.addAction('Radio 7',popup,self.radio7)
         self.addAction('Next Song',popup,self.next)
         self.addAction('Previous Song',popup,self.prev)
         self.addAction('Minimize',popup,self.showMinimized)
