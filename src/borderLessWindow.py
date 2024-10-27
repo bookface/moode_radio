@@ -127,6 +127,7 @@ class BorderLessWindow(QMainWindow):
     # record the position of the mouse when a button is pressed
     def mousePressEvent(self,event):
         self.pressPos = event.position() # save initial drag position
+        print("borderlesss",event.position())
         if event.button() == Qt.RightButton:
             self.rightMouse()
         elif event.button() == Qt.LeftButton:
@@ -142,6 +143,7 @@ class BorderLessWindow(QMainWindow):
         if self.pressPos != None:
             self.move(x-self.pressPos.x(), y-self.pressPos.y())
         
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # record ctrl and alt (not used yet)
     def keyReleaseEvent(self,event):
         if event.key() == Qt.Key_Escape:
@@ -149,6 +151,9 @@ class BorderLessWindow(QMainWindow):
         self.ctrl = False
         self.alt = False
         
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # only keys used are Escape to exit and "t" to toggle
+    # the overlays
     def keyPressEvent (self,event):
         # sometimes works, sometimes doesn't: see keyReleaseEvent
         if event.key() == Qt.Key_Escape:

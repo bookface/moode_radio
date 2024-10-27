@@ -1,6 +1,11 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #
+# donn, Oct 27, 2024
+#   - Fixed the problem where it didn't work if you clicked on the label
+#     and dragged the mouse to move the Widget. Added the mouse event
+#     to the clickableLabel and saved the mouse position in the
+#     callback.
 # donn, Jun 15, 2024
 #   - Moved completely from stations[] containing the urls to pls files
 #     downloaded from moode.  This eliminats the stations[] array.
@@ -182,7 +187,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.label = ClickableLabel(self)
         self.label.setGeometry(self.songRect)
         self.label.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
-        self.label.mousePress.connect(self.currentPlaying)
+        self.label.mousePress.connect(self.labelClicked)
         makeCornersRound(self.label)
         if self.label_style is not None:
             self.label.setStyleSheet(self.label_style)
@@ -583,6 +588,14 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Exit',popup,self.close)
         popup.exec(point)
 
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # The label that displays the current playing song was clicked. 
+    # Map the position to the parent widget and update the display with
+    # what is currently playing.
+    def labelClicked(self,event):
+        self.pressPos = self.label.mapToParent(event.position())
+        self.currentPlaying()
+        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # display the currently playing song
     def currentPlaying(self):

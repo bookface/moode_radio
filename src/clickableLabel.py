@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt,Signal,QTimer
 from PySide6.QtWidgets import QLabel
-from PySide6.QtGui import QFont,QFontMetrics
+from PySide6.QtGui import QFont,QFontMetrics,QMouseEvent
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # QLabels are not normally "clickable," so we need to add the signal
@@ -9,7 +9,7 @@ from PySide6.QtGui import QFont,QFontMetrics
 class ClickableLabel(QLabel):
 
     # signals must be declared before init in Python
-    mousePress = Signal()
+    mousePress = Signal(QMouseEvent)
     
     def __init__(self,parent = None):
         super().__init__(parent)
@@ -82,5 +82,5 @@ class ClickableLabel(QLabel):
             self.label.move(new_x, pos.y())
         
     def mousePressEvent(self,event):
-        self.mousePress.emit()
+        self.mousePress.emit(event)
 
