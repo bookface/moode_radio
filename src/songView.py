@@ -41,11 +41,10 @@ def rootDirectory():
     url  = 'moode.local'
     if os.name == 'nt':
         root = 'X:/Music'
-        url  = '192.168.1.2'    # windows can't handle moode.local
+        url  = '192.168.12.179'    # windows can't handle moode.local
     else:
-        # mount the directory containing files as /media/<user>/music
-        user = getpass.getuser()
-        root = f"/media/{user}/music"
+        # mount the directory containing files
+        root = f"/media/easystore/Music"
     #
     # The mounted name of music files on the raspberry pi,
     # e.g. /media/<name> WITHOUT /media
@@ -74,15 +73,16 @@ class DirectoryTreeApp(QMainWindow):
         import signal
         result = []
         proc = f"mpc -h {self.url} {which}"
+        process = subprocess.Popen(proc,shell=True,
+                                   stdin=None,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
         try:
-            process = subprocess.Popen(proc,shell=True,
-                                       stdin=None,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-            process.wait(timeout=1)
+            process.wait(timeout=2)
             result=process.stdout.readlines()
-        except subprocess.TimeoutExpired:
-            self.label.setText(f"Error In Communication, check URL:{url}")
+        except: # subprocess.TimeoutExpired:
+            # self.label.setText(f"Error In Communication, check URL:{self.url}")
+            print(f"Error In Communication, check URL:{self.url}")
             os.kill(process.pid, signal.SIGTERM)
 
         return result
