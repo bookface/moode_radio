@@ -127,7 +127,6 @@ class BorderLessWindow(QMainWindow):
     # record the position of the mouse when a button is pressed
     def mousePressEvent(self,event):
         self.pressPos = event.position() # save initial drag position
-        print("borderlesss",event.position())
         if event.button() == Qt.RightButton:
             self.rightMouse()
         elif event.button() == Qt.LeftButton:

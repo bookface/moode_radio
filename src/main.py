@@ -120,6 +120,7 @@ def parseArgs():
     parser.add_argument('-5',action='store_true', required = False)
     parser.add_argument('-6',action='store_true', required = False)
     parser.add_argument('-7',action='store_true', required = False)
+    parser.add_argument('-8',action='store_true', required = False)
     # start playing from the last radio station, to disable this
     # pass '-l'
     parser.add_argument('-l',action='store_true', required = False)
@@ -146,6 +147,7 @@ class MyBorderLessWindow(BorderLessWindow):
         elif args['5']: self.group = 'Radio5'
         elif args['6']: self.group = 'Radio6'
         elif args['7']: self.group = 'Radio7'
+        elif args['8']: self.group = 'Radio8'
         if args['l']: playLast = False
             
         # read ini file for image and scale
@@ -562,6 +564,9 @@ class MyBorderLessWindow(BorderLessWindow):
     def radio7(self):
         self.restart('-7')
 
+    def radio8(self):
+        self.restart('-8')
+
     def toggleLabelScroll(self):
         self.label.setScroll(not self.label.scroll)
         # self.label.setText(self.label.text)
@@ -577,6 +582,7 @@ class MyBorderLessWindow(BorderLessWindow):
         self.addAction('Radio 5',popup,self.radio5)
         self.addAction('Radio 6',popup,self.radio6)
         self.addAction('Radio 7',popup,self.radio7)
+        self.addAction('Radio 8',popup,self.radio8)
         self.addAction('Next Song',popup,self.next)
         self.addAction('Previous Song',popup,self.prev)
         self.addAction('Minimize',popup,self.showMinimized)

@@ -41,7 +41,7 @@ def rootDirectory():
     url  = 'moode.local'
     if os.name == 'nt':
         root = 'X:/Music'
-        url  = '192.168.1.2'    # windows can't handle moode.local
+        url  = '192.168.12.180'    # windows can't handle moode.local
     else:
         # mount the directory containing files as /media/<user>/music
         user = getpass.getuser()

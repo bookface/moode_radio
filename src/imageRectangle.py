@@ -25,6 +25,7 @@ class ImageOutlineApp(QApplication):
         self.scene.addItem(self.image_item)
 
         self.rectangle_item = QGraphicsRectItem()
+        self.rectangle_item.setPen(QColor("white"))
         self.scene.addItem(self.rectangle_item)
 
         # Load image
