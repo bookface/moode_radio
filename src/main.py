@@ -421,6 +421,8 @@ class MyBorderLessWindow(BorderLessWindow):
             s = settings.value('radiologos')
             if s != None:
                 RADIOLOGOS = s
+                if not os.path.isdir(RADIOLOGOS):
+                    RADIOLOGOS = 'radio-logos' # not found, try a local dir
 
         # default is 5 buttons. Some radios can contain more then
         # 5, so load any additional buttons
