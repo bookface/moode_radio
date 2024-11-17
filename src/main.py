@@ -64,17 +64,20 @@ from clickableLabel import ClickableLabel
 # Must be a Windows thing.
 #
 URL_FOR_MOODEVIEW = 'http://moode.local'
-url   = '192.168.1.2'
+url   = '192.168.12.180'
 
 #
-# the name of each Radio Button - they need to match the name of the
-# the pls file and the image file if logos are enabled
+# The name of each Radio Button, they need to match the name of the
+# the pls file and the image file if logos are enabled.
+# Just initialing the array and setting some defaults here.
 #
-BUTTONS = ["Majestic Jukebox",
-           "FluxFM - Jazzradio Schwarzenstein",
-           "FluxFM - 80s",
-           "Radio Paradise - Mellow",
-           "KRFC"]
+MAX_BUTTONS  = 10
+BUTTON_NAMES = [None] * MAX_BUTTONS
+BUTTON_NAMES[0] = "Majestic Jukebox"
+BUTTON_NAMES[1] = "FluxFM - Jazzradio Schwarzenstein"
+BUTTON_NAMES[2] = "FluxFM - 80s"
+BUTTON_NAMES[3] = "Radio Paradise - Mellow"
+BUTTON_NAMES[4] = "KRFC"
 
 #
 # Whatever browser to load - see symbol().
@@ -95,7 +98,7 @@ else:
 # on the moode player.
 #
 # Default is local, make changes in moode_radio.ini.
-
+#
 RADIOLOGOS = 'radio-logos'
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -140,7 +143,7 @@ class MyBorderLessWindow(BorderLessWindow):
         # load image and image scale
         self.group,x,y = self.getLast() # get the last saved radio
         playLast = True
-        if args['1']:   self.group = 'Radio1'
+        if   args['1']: self.group = 'Radio1'
         elif args['2']: self.group = 'Radio2'
         elif args['3']: self.group = 'Radio3'
         elif args['4']: self.group = 'Radio4'
@@ -150,29 +153,31 @@ class MyBorderLessWindow(BorderLessWindow):
         elif args['8']: self.group = 'Radio8'
         if args['l']: playLast = False
             
-        # read ini file for image and scale
+        # read ini file for image and scale first
         self.setImageAndScale(self.group)
-
-        print("IMAGE",self.image)
         super().__init__(self.image,self.imageScale)
         if x is not None:
             self.move(int(x),int(y))
 
-        # load all other settings
+        # init the arrays
+        self.initRectangles()
+
+        # now load all other settings
         self.loadSettings(self.group)
+
+        # load the rectangles array from the ini file and
+        # set up the rectangle values for the knobs
+        self.setRectangles(self.group)
+
         self.toolTip = QToolTip(self)
 
-        # set application icon,yet another Windows kludge
+        # set application icon, (YAWK) (yet another Windows kludge)
         if os.name == 'nt':
             import ctypes
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('moode_radio.app.1')
         pixmap = QPixmap('images/radioIcon.png')
         self.icon = QIcon(pixmap)
         self.setWindowIcon(self.icon)
-
-        # set up the rectangles for the knobs
-        self.initRectangles()          # initialize the array
-        self.setRectangles(self.group) # load the array from ini file
 
         # the station list is not showing
         self.stationListShowing = False
@@ -255,20 +260,22 @@ class MyBorderLessWindow(BorderLessWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # create the knob rectangles and initialize with some default values
     def initRectangles(self):
+        global MAX_BUTTONS
         ytop = 503
         yheight = 530-ytop
         xwidth  = 55
-        self.buttonRects = []
-
-        self.buttonRects.append(QRect(320,ytop,xwidth,yheight))
-        self.buttonRects.append(QRect(388,ytop,xwidth,yheight))
-        self.buttonRects.append(QRect(450,ytop,xwidth,yheight))
-        self.buttonRects.append(QRect(512,ytop,xwidth,yheight))
-        self.buttonRects.append(QRect(574,ytop,xwidth,yheight))
 
         # 10 buttons max
-        # for i in range(5):
-        # self.buttonRects.append(QRect(0,0,0,0))
+        self.buttonRects = [None] * MAX_BUTTONS # init rectangles
+        for i in range(MAX_BUTTONS):
+            self.buttonRects[i]=QRect(0,0,0,0)
+            
+        # set some defaults
+        self.buttonRects[0]=QRect(320,ytop,xwidth,yheight)
+        self.buttonRects[1]=QRect(388,ytop,xwidth,yheight)
+        self.buttonRects[2]=QRect(450,ytop,xwidth,yheight)
+        self.buttonRects[3]=QRect(512,ytop,xwidth,yheight)
+        self.buttonRects[4]=QRect(574,ytop,xwidth,yheight)
 
         # rectangles of other knob places
         self.volumeRect     = QRect(145,380,250-135,480-375)
@@ -291,7 +298,7 @@ class MyBorderLessWindow(BorderLessWindow):
         if self.imageScale != 1.0:
             transform = QTransform()
             transform = transform.scale(self.imageScale,self.imageScale)
-            for i in range(len(self.buttonRects)):
+            for i in range(self.numButtons):
                 self.buttonRects[i] = transform.mapRect(self.buttonRects[i])
             self.volumeRect     = transform.mapRect(self.volumeRect)
             self.tuningKnobRect = transform.mapRect(self.tuningKnobRect)
@@ -382,25 +389,29 @@ class MyBorderLessWindow(BorderLessWindow):
     # image. moode_radio.ini is for settings local to this
     #
     def loadSettings(self,group):
-        # get num buttons from system file
+
+        global url,BUTTON_NAMES
+        
+        # get numButtons from system ini
         fname = 'moode_system.ini'
-        numButtons = 5
+        self.numButtons = 5
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
             if group != None:
                 settings.beginGroup(group)
-            numButtons = int(settings.value('numButtons',5))
+            self.numButtons = int(settings.value('numButtons',5))
 
         # load personal settings next
         fname = 'moode_radio.ini'
+        # load general for all radios
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
-            global url, BUTTONS
             url = settings.value('url')
-            for i in range(5):  # 5 buttons default
+            # load default buttons from "General"
+            for i in range(self.numButtons):
                 v = settings.value(f"button{i}")
                 if v != None:
-                    BUTTONS[i] = v
+                    BUTTON_NAMES[i] = v
 
             #
             # use the built-in python browser or use an
@@ -428,12 +439,13 @@ class MyBorderLessWindow(BorderLessWindow):
         # 5, so load any additional buttons
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
-            settings.beginGroup(group)
-            for i in range(numButtons):
+            if group != None:
+                settings.beginGroup(group)
+            for i in range(self.numButtons):
                 v = settings.value(f"button{i}")
                 if v != None:
-                    BUTTONS.append(v)
-
+                    BUTTON_NAMES[i]=v
+                    
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load the rectanges defining the clickable buttons
     def loadRectanglesFromIni(self,group):
@@ -442,14 +454,11 @@ class MyBorderLessWindow(BorderLessWindow):
             settings = QSettings(fname,QSettings.IniFormat)
             if group != None:
                 settings.beginGroup(group)
-            numButtons = int(settings.value('numButtons',5))
-            for i in range(numButtons):
+            self.numButtons = int(settings.value('numButtons',5))
+            for i in range(self.numButtons):
                 r = settings.value(f"buttonRect{i}")
                 if r != None:
-                    if i < len(self.buttonRects):
-                        self.buttonRects[i] =QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
-                    else:
-                        self.buttonRects.append(QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3])))
+                    self.buttonRects[i] =QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
 
             r = settings.value('volumeRect')
             if r != None: self.volumeRect = QRect(int(r[0]),int(r[1]),int(r[2]),int(r[3]))
@@ -466,7 +475,7 @@ class MyBorderLessWindow(BorderLessWindow):
 
             r = settings.value('station5')
             if r != None:
-                BUTTONS.append(settings.value('button5'))
+                BUTTON_NAMES.append(settings.value('button5'))
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # run an mpc command
@@ -638,7 +647,7 @@ class MyBorderLessWindow(BorderLessWindow):
 
     # one of the radio buttons was pressed
     def radioButton(self,i):
-        plsname = BUTTONS[i] + ".pls"
+        plsname = BUTTON_NAMES[i] + ".pls"
         self.loadPlsFile(plsname)
 
     def pause(self):
@@ -747,10 +756,9 @@ class MyBorderLessWindow(BorderLessWindow):
         elif self.tunerRect.contains(event.pos()):
             self.toolTip.showText(event.globalPos(),'Select Station',msecShowTime = 2000)
         else:
-            for i in range(len(self.buttonRects)):
+            for i in range(self.numButtons):
                 if self.buttonRects[i].contains(event.pos()):
-                    if i < len(BUTTONS):
-                        self.toolTip.showText(event.globalPos(),BUTTONS[i],msecShowTime = 2000)
+                    self.toolTip.showText(event.globalPos(),BUTTON_NAMES[i],msecShowTime = 2000)
                     return
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
