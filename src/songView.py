@@ -90,7 +90,9 @@ class DirectoryTreeApp(QMainWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # transform from local path to raspberry pi path
     def fixPath(self,path):
-        p = path.replace("\\", "/") # replace windows annoying back slashes
+        # replace Windows annoying back slashes
+        p = path.replace("\\", "/")
+        # replace local root with moode mounted root
         p2 = p.replace(self.root,self.mountName)
         return p2
 
@@ -108,14 +110,22 @@ class DirectoryTreeApp(QMainWindow):
             return
 
         path = self.selectedPath
-        if os.path.isdir(path):
+        #
+        # Add directory, I don't think we need to sort
+        # the dir, adding the directory directly works.
+        # If it needs sorted, this code will need to
+        # be fixed because the directory returned by Path()
+        # is NOT the mounted directory, but it returns the
+        # the network name of the path.
+        #
+        if False: # os.path.isdir(path):
             # sort then add all files
             list = [str(child.resolve()) for child in Path.iterdir(Path(path))]
             list = sorted(list)
             for f in list:
-                filename = self.fixPath(f)
+                filename = self.fixPath(path)
                 self.cmd(f"add \"{filename}\"")
-        else:                   # one file
+        else:
             filename = self.fixPath(path)
             self.cmd(f"add \"{filename}\"")
 
