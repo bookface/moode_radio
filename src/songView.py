@@ -230,8 +230,11 @@ class DirectoryTreeApp(QMainWindow):
         self.fileSystemModel = self.create_fileSystemModel()
         self.treeView.setModel(self.fileSystemModel)
         self.treeView.setRootIndex(self.fileSystemModel.index(self.root))
-        self.treeView.setColumnWidth(0,400)
-
+        self.treeView.setColumnWidth(0,600)
+        # hide Size column
+        self.treeView.hideColumn(1)
+        # hide "Date Modified column"
+        self.treeView.hideColumn(3)
         self.getVolume()
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
