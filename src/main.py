@@ -534,11 +534,23 @@ class MyBorderLessWindow(BorderLessWindow):
         self.cmd('clear')
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # just for debugging, show the locations of knobs, etc.
+    # show the locations of knobs, etc.
     def toggleOverlays(self):
         rubberBandWidget = self.centralWidget()
         rubberBandWidget.toggle()
 
+    def overLaysShowing(self):
+        rubberBandWidget = self.centralWidget()
+        return (rubberBandWidget.hidden == False)
+
+    def hideOverlays(self):
+        rubberBandWidget = self.centralWidget()
+        rubberBandWidget.hide()
+
+    def showOverlays(self):
+        rubberBandWidget = self.centralWidget()
+        rubberBandWidget.show()
+        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # add an action to a popup menu
     def addAction(self,name,popup,callback):
@@ -755,12 +767,23 @@ class MyBorderLessWindow(BorderLessWindow):
             self.toolTip.showText(event.globalPos(),'Play/Pause',msecShowTime = 2000)
         elif self.tunerRect.contains(event.pos()):
             self.toolTip.showText(event.globalPos(),'Select Station',msecShowTime = 2000)
+        elif self.symbolRect.contains(event.pos()):
+            self.toolTip.showText(event.globalPos(),'Options',msecShowTime = 2000)
         else:
             for i in range(self.numButtons):
                 if self.buttonRects[i].contains(event.pos()):
                     self.toolTip.showText(event.globalPos(),BUTTON_NAMES[i],msecShowTime = 2000)
-                    return
+                    break
 
+        # turn on overlays for a while
+        if (self.overLaysShowing() == False):
+            self.showOverlays()
+            self.otimer = QTimer()
+            self.otimer.setSingleShot(True)
+            self.otimer.setInterval(5000)
+            self.otimer.timeout.connect(self.hideOverlays)
+            self.otimer.start()
+                
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # left mouse pressed
     def leftMouse(self,e):
