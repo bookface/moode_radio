@@ -25,6 +25,8 @@ import glob
 from pathlib import Path
 import getpass
 
+from alert import AlertDialog
+
 if os.name == 'nt':
     from subprocess import CREATE_NO_WINDOW
 
@@ -44,7 +46,7 @@ def rootDirectory():
         url  = '192.168.12.180'    # windows can't handle moode.local
     else:
         # mount the directory containing files
-        root = f"/media/easystore/Music"
+        root = f"/media/easystore"
     #
     # The mounted name of music files on the raspberry pi,
     # e.g. /media/<name> WITHOUT /media
@@ -165,7 +167,8 @@ class DirectoryTreeApp(QMainWindow):
         super().__init__()
 
         self.root,self.url,self.mountName = rootDirectory()
-
+        print("root:",self.root,'url:',self.url,'mountName:',self.mountName)
+        
         self.setWindowTitle(f"Music Selector {self.root}")
         self.setGeometry(100, 100, 800, 1000)
 
@@ -282,9 +285,20 @@ class DirectoryTreeApp(QMainWindow):
         else:                   # linux
             subprocess.Popen(["python3","player.py",filename])
         
+def showAlert(window):
+    python = 'python3'
+    if os.name == 'nt':
+        python = 'pythonw'
+
+    try:
+        process = subprocess.Popen([python, 'alert.py',f"\"Directory {window.root} used to select file names\""])
+    except:
+        pass
+    
 def main():
     app = QApplication(sys.argv)
     window = DirectoryTreeApp()
+    showAlert(window)
     window.show()
     sys.exit(app.exec())
 
