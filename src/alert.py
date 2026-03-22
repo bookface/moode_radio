@@ -93,5 +93,5 @@ if __name__ == '__main__':
         if len(sys.argv) > 3:
             red = True
 
-    a = AlertDialog(msg,red=red,fade = True, duration = 2000)
+    a = AlertDialog(msg,red=red,fade = True, duration = 4000)
     app.exec()

@@ -46,12 +46,12 @@ def rootDirectory():
         url  = '192.168.12.180'    # windows can't handle moode.local
     else:
         # mount the directory containing files
-        root = f"/media/easystore"
+        root = "/media/music"
     #
     # The mounted name of music files on the raspberry pi,
     # e.g. /media/<name> WITHOUT /media
     #
-    mounted_name = 'easystore'
+    mounted_name = 'music'
     return root,url,mounted_name
 
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
@@ -291,7 +291,7 @@ def showAlert(window):
         python = 'pythonw'
 
     try:
-        process = subprocess.Popen([python, 'alert.py',f"\"Directory {window.root} used to select file names\""])
+        process = subprocess.Popen([python, 'alert.py',f"url:{window.url}, {window.root} used to select file names"])
     except:
         pass
     

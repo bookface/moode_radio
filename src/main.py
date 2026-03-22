@@ -64,7 +64,7 @@ from clickableLabel import ClickableLabel
 # Must be a Windows thing.
 #
 URL_FOR_MOODEVIEW = 'http://moode.local'
-url   = '192.168.12.180'
+URL   = '192.168.12.180'
 
 #
 # The name of each Radio Button, they need to match the name of the
@@ -228,6 +228,20 @@ class MyBorderLessWindow(BorderLessWindow):
         if playLast:
             self.loadLastPlsFile()
 
+        self.showAlert(f"Logos directory: {RADIOLOGOS}")
+        
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    def showAlert(self,msg):
+        python = 'python3'
+        if os.name == 'nt':
+            python = 'pythonw'
+        try:
+            process = subprocess.Popen([python,
+                                        'alert.py',
+                                        msg])
+        except:
+            pass
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def getLast(self):
         group = 'Radio1'
@@ -331,7 +345,7 @@ class MyBorderLessWindow(BorderLessWindow):
         else:
             name  = 'images/notfound.png'
             self.setLogo(name)
-
+        
     def setLogo(self,name):
         image = QImage(name)
         pixmap = QPixmap.fromImage(image)
@@ -390,7 +404,7 @@ class MyBorderLessWindow(BorderLessWindow):
     #
     def loadSettings(self,group):
 
-        global url,BUTTON_NAMES
+        global URL,BUTTON_NAMES
         
         # get numButtons from system ini
         fname = 'moode_system.ini'
@@ -406,7 +420,7 @@ class MyBorderLessWindow(BorderLessWindow):
         # load general for all radios
         if os.path.isfile(fname):
             settings = QSettings(fname,QSettings.IniFormat)
-            url = settings.value('url')
+            URL = settings.value('url')
             # load default buttons from "General"
             for i in range(self.numButtons):
                 v = settings.value(f"button{i}")
@@ -445,7 +459,7 @@ class MyBorderLessWindow(BorderLessWindow):
                 v = settings.value(f"button{i}")
                 if v != None:
                     BUTTON_NAMES[i]=v
-                    
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load the rectanges defining the clickable buttons
     def loadRectanglesFromIni(self,group):
@@ -480,14 +494,15 @@ class MyBorderLessWindow(BorderLessWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # run an mpc command
     def cmd(self,which):
-        proc = f"mpc --quiet -h {url} {which}"
+        global URL
+        proc = f"mpc --quiet -h {URL} {which}"
         try:
             if os.name == 'nt':
                 subprocess.run(proc,creationflags=CREATE_NO_WINDOW,timeout = 3,check=True)
             else:
                 subprocess.run(proc,shell=True,timeout = 3,check=True)
         except:
-            self.label.setText(f"MPC Error, check URL:{url}")
+            self.label.setText(f"MPC Error, check URL:{URL}")
 
     #
     # run an mpc command, and return the result strings.
@@ -496,8 +511,9 @@ class MyBorderLessWindow(BorderLessWindow):
     #
     def cmdResult(self,which):
         import signal
+        global URL
         result = []
-        proc = f"mpc -h {url} {which}"
+        proc = f"mpc -h {URL} {which}"
         try:
             process = subprocess.Popen(proc,shell=True,
                                        stdin=None,
@@ -506,7 +522,7 @@ class MyBorderLessWindow(BorderLessWindow):
             process.wait(timeout=1)
             result=process.stdout.readlines()
         except subprocess.TimeoutExpired:
-            self.label.setText(f"Error In Communication, check URL:{url}")
+            self.label.setText(f"Error In Communication, check URL:{URL}")
             os.kill(process.pid, signal.SIGTERM)
 
         return result
@@ -550,7 +566,7 @@ class MyBorderLessWindow(BorderLessWindow):
     def showOverlays(self):
         rubberBandWidget = self.centralWidget()
         rubberBandWidget.show()
-        
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # add an action to a popup menu
     def addAction(self,name,popup,callback):
@@ -624,7 +640,7 @@ class MyBorderLessWindow(BorderLessWindow):
     def labelClicked(self,event):
         self.pressPos = self.label.mapToParent(event.position())
         self.currentPlaying()
-        
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # display the currently playing song
     def currentPlaying(self):
@@ -724,9 +740,10 @@ class MyBorderLessWindow(BorderLessWindow):
 
     # display the station list
     def tuner(self):
+        global URL
         if self.stationListShowing == False:
             self.stationListShowing = True
-            self.stationView = StationView(self.currentRow,url,self)
+            self.stationView = StationView(self.currentRow,URL,self)
             self.stationView.show()
             self.stationView.selected.connect(self.stationSelected)
             self.stationView.closed.connect(self.stationClosed)
@@ -783,7 +800,7 @@ class MyBorderLessWindow(BorderLessWindow):
             self.otimer.setInterval(5000)
             self.otimer.timeout.connect(self.hideOverlays)
             self.otimer.start()
-                
+
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # left mouse pressed
     def leftMouse(self,e):
