@@ -118,7 +118,7 @@ class BorderLessWindow(QMainWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def hover(self,event):      # overide this
         pass
-    def rightMouse(self):       # override this
+    def rightMouse(self,e):     # override this
         pass
     def leftMouse(self,e):      # override this
         pass
@@ -128,7 +128,7 @@ class BorderLessWindow(QMainWindow):
     def mousePressEvent(self,event):
         self.pressPos = event.position() # save initial drag position
         if event.button() == Qt.RightButton:
-            self.rightMouse()
+            self.rightMouse(event)
         elif event.button() == Qt.LeftButton:
             self.leftMouse(event)
         else:

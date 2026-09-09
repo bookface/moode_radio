@@ -1,6 +1,8 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #
+# donn, Sept 9, 2026
+#   - add right-mouse-shows-popup-menu
 # donn, Oct 27, 2024
 #   - Fixed the problem where it didn't work if you clicked on the label
 #     and dragged the mouse to move the Widget. Added the mouse event
@@ -801,6 +803,12 @@ class MyBorderLessWindow(BorderLessWindow):
             self.otimer.timeout.connect(self.hideOverlays)
             self.otimer.start()
 
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # right mouse, popup menu
+    def rightMouse(self,e):
+        point = QCursor.pos()
+        self.popupMenu(point)
+        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # left mouse pressed
     def leftMouse(self,e):
