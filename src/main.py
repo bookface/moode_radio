@@ -1,6 +1,12 @@
 #-*- coding: utf-8 -*-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 #
+# donn, Sept 24, 2026
+#   - added REST" api - gets/sets volume and downloads the station
+#     images, replacing the local directory of radio-logos
+#        (REST stands for "Representational State Transfer
+#        Application Programming Interface" and sometimes returns
+#        data in JSON format)
 # donn, Sept 9, 2026
 #   - add right-mouse-shows-popup-menu
 # donn, Oct 27, 2024
@@ -94,15 +100,6 @@ if os.name == 'nt':
 else:
     BROWSER_EXECUTABLE = "~/apps/bin/moodeView"
 
-#
-# Path to radiologos - either local downloaded via backup from moode
-# or a mounted dir from /var/local/www.imagesw/radio-logos
-# on the moode player.
-#
-# Default is local, make changes in moode_radio.ini.
-#
-RADIOLOGOS = 'radio-logos'
-
 # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 # An invisible QDial - rotatable, but probably easier to just use
 # the mouse scroll wheel
@@ -129,6 +126,10 @@ def parseArgs():
     # start playing from the last radio station, to disable this
     # pass '-l'
     parser.add_argument('-l',action='store_true', required = False)
+
+    # print current song
+    parser.add_argument('-c',action='store_true', required = False)
+
     args = parser.parse_args()
     dictionary = vars(args)     # convert to dictionary
     return dictionary
@@ -154,6 +155,12 @@ class MyBorderLessWindow(BorderLessWindow):
         elif args['7']: self.group = 'Radio7'
         elif args['8']: self.group = 'Radio8'
         if args['l']: playLast = False
+
+        # display some current song data
+        if args['c']:
+            json_string = self.rest('get_currentsong')
+            data = self.parse_json(json_string)
+            print("File:",data['file'],"album:",data['album'],"cover:",data['coverurl'])
             
         # read ini file for image and scale first
         self.setImageAndScale(self.group)
@@ -203,15 +210,10 @@ class MyBorderLessWindow(BorderLessWindow):
         else:
             self.label.setStyleSheet('color:white;background-color: rgba(0,0,0,0%)')
 
-        # logos - enabled if ./radio-logos directory exists, create a label to
-        # hold the image
-        self.logo = None
-        global RADIOLOGOS
-        if os.path.isdir(RADIOLOGOS):
-            self.logo = QLabel(self)
-            self.logo.setGeometry(self.logoRect)
-            self.logo.setScaledContents(True)
-            self.setLogoImage('')
+        # create a label to hold station image
+        self.logo = QLabel(self)
+        self.logo.setGeometry(self.logoRect)
+        self.logo.setScaledContents(True)
 
         # display currently playing
         self.currentPlaying()
@@ -221,8 +223,11 @@ class MyBorderLessWindow(BorderLessWindow):
         self.timer.timeout.connect(self.currentPlaying)
         self.timer.start(10 * 1000) # seconds
 
-        self.status()
-
+        # set volume knob
+        # self.status()
+        vol = self.getVolume()
+        self.volumeDial.setValue(vol)
+        
         # preserve the current selected row in stationView()
         self.currentRow = 0
 
@@ -230,8 +235,6 @@ class MyBorderLessWindow(BorderLessWindow):
         if playLast:
             self.loadLastPlsFile()
 
-        self.showAlert(f"Logos directory: {RADIOLOGOS}")
-        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     def showAlert(self,msg):
         python = 'python3'
@@ -337,16 +340,25 @@ class MyBorderLessWindow(BorderLessWindow):
         rubberBandWidget.addRectangle(self.logoRect)
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    def setLogoImage(self,fname):
-        global RADIOLOGOS
-        name  = f"{RADIOLOGOS}/{fname}"
-        if not os.path.isfile(name):
-            name  = f"{RADIOLOGOS}/{fname}.jpg"
-        if os.path.isfile(name):
-            self.setLogo(name)
-        else:
-            name  = 'images/notfound.png'
-            self.setLogo(name)
+    def setLogoImage(self):
+
+        # get the current image using REST
+        json_string = self.rest('get_currentsong')
+        data = self.parse_json(json_string)
+        url = data['coverurl']
+        import urllib.request
+        url = f"{URL_FOR_MOODEVIEW}/{url}"
+
+        # create a temporary file for the image
+        import tempfile
+        temp_file = tempfile.NamedTemporaryFile(
+            prefix="downloaded_image", # prefix
+            suffix=".jpg",             # file extension
+        )
+        output_path = temp_file.name
+        # Downloads the image and writes it directly to disk
+        urllib.request.urlretrieve(url, output_path)
+        self.setLogo(output_path)
         
     def setLogo(self,name):
         image = QImage(name)
@@ -377,6 +389,12 @@ class MyBorderLessWindow(BorderLessWindow):
         out = out[:-1]          # remove the %
         self.volumeDial.setValue(int(out))
 
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    def getVolume(self):
+        data = self.rest('get_volume')
+        if data != None:
+            return int(data)
+            
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # set the name of the image and it's scale
     def setImageAndScale(self,group):
@@ -443,14 +461,6 @@ class MyBorderLessWindow(BorderLessWindow):
             if s != None:
                 BROWSER_EXECUTABLE = settings.value('browser_executable')
 
-            # radio logos - local directory or smb mounted
-            global RADIOLOGOS
-            s = settings.value('radiologos')
-            if s != None:
-                RADIOLOGOS = s
-                if not os.path.isdir(RADIOLOGOS):
-                    RADIOLOGOS = 'radio-logos' # not found, try a local dir
-
         # default is 5 buttons. Some radios can contain more then
         # 5, so load any additional buttons
         if os.path.isfile(fname):
@@ -494,7 +504,63 @@ class MyBorderLessWindow(BorderLessWindow):
                 BUTTON_NAMES.append(settings.value('button5'))
 
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-    # run an mpc command
+    # use data["file"] etc to retrieve data
+    def parse_json(self,json_string):
+        try:
+            import json
+        except ImportError:
+            self.showAlert("json Library does not exist for rest API.")
+            return None
+
+        try:
+            data = json.loads(json_string)
+            return data
+        except json.JSONDecodeError as e:
+            self.showAlert(f"Invalid JSON string format: {e}")
+            return None
+    
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # REST API
+    # Not every command returns a json array. Some (like set_volume) will
+    # just return an integer value, you have to test each command
+    #
+    def rest(self,cmd):
+        debug = False
+        try:
+            import urllib.request
+        except ImportError:
+            self.showAlert("urllib does not exist")
+            return None
+
+        try:
+            import json
+        except ImportError:
+            self.showAlert("json library does not exist")
+            return None
+
+        params = {
+            "cmd": cmd
+        }
+        query = urllib.parse.urlencode(params)
+        url = f"http://moode/command/?{query}"
+        try:
+            # Open the URL and fetch the raw data
+            with urllib.request.urlopen(url) as response:
+                # Read the raw bytes and decode them into a string
+                json_string = response.read().decode("utf-8")
+                # Responses are not all json arrays.
+                # If json_string is in fact a json array, then
+                # call json_parse() to retrieve the values
+                #print("command:",cmd,"return value:",json_string)
+                if debug:
+                    self.showAlert(json_string)
+                return json_string
+        except Exception as e:
+            self.showAlert(f"An error occurred with REST api: {e}")
+            return None
+        
+    # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+    # run an MPC command
     def cmd(self,which):
         global URL
         proc = f"mpc --quiet -h {URL} {which}"
@@ -538,11 +604,11 @@ class MyBorderLessWindow(BorderLessWindow):
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # load a 'pls' playlist file
     def load(self,name):
-        self.setLogoImage('')
         self.cmd(f"load '{name}'")
         result = self.playlistLength()
         if result > 0:
             self.cmd(f"play {result}")
+            self.setLogoImage()
             return True
         return False
 
@@ -680,8 +746,8 @@ class MyBorderLessWindow(BorderLessWindow):
         plsname = BUTTON_NAMES[i] + ".pls"
         self.loadPlsFile(plsname)
 
-    def pause(self):
-        self.cmd('pause')
+#    def pause(self):
+#        self.cmd('pause')
 
     #
     # The "play" command will only start playing what was
@@ -702,23 +768,19 @@ class MyBorderLessWindow(BorderLessWindow):
         self.cmd('vol -1')
 
     def vol(self,value):
-        self.cmd(f'vol {value}')
-
+        #self.cmd(f'vol {value}')
+        self.rest(f"set_volume {value}")
+        
     # the tuning knob toggles play/pause
     def tuningKnob(self):
         self.cmd('toggle')
-
+        
     # ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
     # We now load pls file obtained from moode instead if using the url.
-    # Using the pls file also makes it easier to load the jpg, since the
-    # names are identical
     def loadPlsFile(self,plsname):
         name = f"RADIO/{plsname}" # see stationView, add RADIO
         self.load(name)
-        if self.logo != None:
-            name = plsname.replace('.pls', "", 1)
-            name = f"{name}.jpg"
-            self.setLogoImage(name)
+        self.setLogoImage()
         # save it
         fname = 'moode_last.ini'
         settings = QSettings(fname,QSettings.IniFormat)
@@ -781,7 +843,8 @@ class MyBorderLessWindow(BorderLessWindow):
     def hover(self,event):
         # event.pos() is QPoint, not QPointF!
         if self.volumeRect.contains(event.pos()):
-            self.toolTip.showText(event.globalPos(),"Set Volume",msecShowTime = 3000)
+            vol = self.getVolume()
+            self.toolTip.showText(event.globalPos(),f"Set Volume {vol}",msecShowTime = 3000)
         elif self.tuningKnobRect.contains(event.pos()):
             self.toolTip.showText(event.globalPos(),'Play/Pause',msecShowTime = 2000)
         elif self.tunerRect.contains(event.pos()):
@@ -836,11 +899,9 @@ class MyBorderLessWindow(BorderLessWindow):
 
 #  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 if __name__ == '__main__':
-    import sys
-    sys.dont_write_bytecode = True
-    import os
 
     import sys
+    sys.dont_write_bytecode = True
     app = QApplication(sys.argv)
     win = MyBorderLessWindow()
     win.show()
